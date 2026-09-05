@@ -1,0 +1,30 @@
+export const ROUTES = {
+  home: "/",
+  login: "/login",
+  register: "/register",
+  forgotPassword: "/forgot-password",
+  resetPassword: "/reset-password",
+  unauthorized: "/unauthorized",
+  account: "/account",
+  admin: {
+    root: "/admin",
+    users: "/admin/users",
+    papers: "/admin/papers",
+    reviewers: "/admin/reviewers",
+    settings: "/admin/settings",
+    conferences: {
+      list: "/admin/conferences",
+      new: "/admin/conferences/new",
+      detail: (id: string) => `/admin/conferences/${id}`,
+      submissions: (id: string) => `/admin/conferences/${id}/submissions`,
+    },
+    submissionDetail: (id: string) => `/admin/submissions/${id}`,
+  },
+  researcher: { root: "/researcher", submit: "/researcher/submit" },
+  reviewer: { root: "/reviewer", assigned: "/reviewer/assigned" },
+  publicConference: {
+    detail: (slug: string) => `/conference/${slug}`,
+    submit: (slug: string) => `/conference/${slug}/submit`,
+    submissionSuccess: (slug: string) => `/conference/${slug}/submission-success`,
+  },
+} as const;
