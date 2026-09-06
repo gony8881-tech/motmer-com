@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, Navigate, useSearchParams } from "react-router-dom";
 import { PageContainer } from "@/components/layout";
 import { Alert, Button, Card, Input, Loading } from "@/components/ui";
 import { FormField } from "@/components/forms";
@@ -16,7 +16,6 @@ import { ROUTES } from "@/constants/routes";
 
 export default function RegisterPage() {
   const { isAuthenticated, loading, role, signUp } = useAuth();
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const returnUrl = searchParams.get("returnUrl");
 

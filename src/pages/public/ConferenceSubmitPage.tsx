@@ -104,7 +104,7 @@ export default function ConferenceSubmitPage() {
   }
 
   async function handleSubmit() {
-    if (submittingRef.current) return; // منع الإرسال المكرر (double click)
+    if (submittingRef.current || !conference) return; // منع الإرسال المكرر (double click)
     submittingRef.current = true;
     setSubmitting(true);
     setSubmitError(null);

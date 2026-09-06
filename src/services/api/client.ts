@@ -6,7 +6,7 @@ import { env } from "@/app/config/env";
  * هذه المرحلة: هيكل فقط، بدون اتصال فعلي بأي خادم.
  */
 class ApiClient {
-  private baseUrl: string;
+  public readonly baseUrl: string;
 
   constructor(baseUrl: string) {
     this.baseUrl = baseUrl;

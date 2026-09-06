@@ -6,7 +6,7 @@
  */
 export type ConferenceStatus = "DRAFT" | "OPEN" | "CLOSED";
 
-export interface ConferenceRow {
+export type ConferenceRow = {
   id: string;
   title: string;
   slug: string;
@@ -54,7 +54,7 @@ export type PaperStatusRow =
   | "REJECTED"
   | "WITHDRAWN";
 
-export interface ResearcherRow {
+export type ResearcherRow = {
   id: string;
   full_name: string;
   email: string;
@@ -66,9 +66,9 @@ export interface ResearcherRow {
   user_id: string | null;
   created_at: string;
   updated_at: string;
-}
+};
 
-export interface PaperRow {
+export type PaperRow = {
   id: string;
   paper_number: string;
   conference_id: string;
@@ -81,9 +81,9 @@ export interface PaperRow {
   submitted_at: string;
   created_at: string;
   updated_at: string;
-}
+};
 
-export interface PaperVersionRow {
+export type PaperVersionRow = {
   id: string;
   paper_id: string;
   version_number: number;
@@ -94,10 +94,10 @@ export interface PaperVersionRow {
   uploaded_at: string;
   uploaded_by: string | null;
   created_at: string;
-}
+};
 
 /** Payload المُرسَل إلى public.submit_paper (RPC) — انظر supabase/migrations/002_submission_schema.sql */
-export interface SubmitPaperPayload {
+export type SubmitPaperPayload = {
   conference_id: string;
   full_name: string;
   email: string;
@@ -114,19 +114,19 @@ export interface SubmitPaperPayload {
   file_name: string;
   file_type: string;
   file_size: number;
-}
+};
 
-export interface SubmitPaperResult {
+export type SubmitPaperResult = {
   paper_id: string;
   paper_number: string;
-}
+};
 
 /**
  * أنواع مطابقة لجدول profiles (المرحلة الرابعة) — ملف تعريف كل مستخدم Auth ودوره.
  */
 export type UserRole = "ADMIN" | "RESEARCHER" | "REVIEWER";
 
-export interface ProfileRow {
+export type ProfileRow = {
   id: string;
   full_name: string;
   email: string;
@@ -135,15 +135,16 @@ export interface ProfileRow {
   is_active: boolean;
   created_at: string;
   updated_at: string;
-}
+};
 
-export interface Database {
+export type Database = {
   public: {
     Tables: {
       conferences: {
         Row: ConferenceRow;
         Insert: ConferenceInsert;
         Update: ConferenceUpdate;
+        Relationships: [];
       };
       profiles: {
         Row: ProfileRow;
@@ -152,23 +153,36 @@ export interface Database {
           updated_at?: string;
         };
         Update: Partial<Omit<ProfileRow, "id" | "created_at" | "updated_at">>;
+        Relationships: [];
       };
       researchers: {
         Row: ResearcherRow;
         Insert: Omit<ResearcherRow, "id" | "created_at" | "updated_at"> & { id?: string };
         Update: Partial<Omit<ResearcherRow, "id" | "created_at" | "updated_at">>;
+        Relationships: [];
       };
       papers: {
         Row: PaperRow;
         Insert: Omit<PaperRow, "id" | "created_at" | "updated_at"> & { id?: string };
         Update: Partial<Omit<PaperRow, "id" | "created_at" | "updated_at">>;
+        Relationships: [
+          {
+            foreignKeyName: "papers_conference_id_fkey";
+            columns: ["conference_id"];
+            isOneToOne: false;
+            referencedRelation: "conferences";
+            referencedColumns: ["id"];
+          }
+        ];
       };
       paper_versions: {
         Row: PaperVersionRow;
         Insert: Omit<PaperVersionRow, "id" | "created_at"> & { id?: string };
         Update: Partial<Omit<PaperVersionRow, "id" | "created_at">>;
+        Relationships: [];
       };
     };
+    Views: Record<string, never>;
     Functions: {
       submit_paper: {
         Args: { payload: SubmitPaperPayload };
