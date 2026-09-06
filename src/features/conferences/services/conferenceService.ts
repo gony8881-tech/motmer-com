@@ -1,6 +1,6 @@
 import { requireSupabase } from "@/lib/supabase/client";
 import type { ConferenceRow, PublicConferenceRow } from "@/lib/supabase/types";
-import type { Conference, PublicConference } from "@/types";
+import type { Conference, ConferenceStatus, PublicConference } from "@/types";
 import type { ConferenceFormValues } from "@/features/conferences/types";
 import { slugify } from "@/utils/slugify";
 
@@ -172,9 +172,13 @@ export async function getOpenConferencesForSubmission(): Promise<PublicConferenc
   return (data ?? []).map((row) => mapPublicRowToConference(row as PublicConferenceRow));
 }
 
+export type ConferenceUpdateValues = Partial<ConferenceFormValues> & {
+  status?: ConferenceStatus;
+};
+
 export async function updateConference(
   id: string,
-  values: Partial<ConferenceFormValues>
+  values: ConferenceUpdateValues
 ): Promise<Conference> {
   const client = requireSupabase();
 
@@ -194,6 +198,7 @@ export async function updateConference(
       ...(values.endDate !== undefined && { end_date: values.endDate }),
       ...(values.submissionStart !== undefined && { submission_start: values.submissionStart }),
       ...(values.submissionEnd !== undefined && { submission_end: values.submissionEnd }),
+      ...(values.status !== undefined && { status: values.status }),
       ...(values.scientificFields !== undefined && { scientific_fields: values.scientificFields }),
       ...(values.submissionConditions !== undefined && {
         submission_conditions: values.submissionConditions.trim() || null,
