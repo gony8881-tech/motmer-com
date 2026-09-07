@@ -39,7 +39,9 @@ export default function ConferenceSubmitPage() {
     updatePaper,
     updateFile,
     setAgreedToAccuracy,
-  } = useSubmissionWizard();
+    clearDraft,
+    restoredFromDraft,
+  } = useSubmissionWizard(slug);
 
   const [researcherErrors, setResearcherErrors] = useState<ResearcherFormErrors>({});
   const [paperErrors, setPaperErrors] = useState<PaperFormErrors>({});
@@ -49,14 +51,17 @@ export default function ConferenceSubmitPage() {
   const prefilledRef = useRef(false);
 
   // الصفحة محمية بـ ProtectedRoute، لذا يوجد دائمًا profile هنا. نملأ بيانات
-  // الباحث تلقائيًا من الحساب مرة واحدة فقط (البريد يبقى مقفلًا لاحقًا لأنه
-  // مرتبط بالحساب — انظر submit_paper الذي يعتمد على auth.users وليس الحمولة).
+  // الباحث تلقائيًا من الحساب إن لم تكن مستعادة مسبقًا من المسودة (البريد يبقى
+  // مقفلًا لاحقًا لأنه مرتبط بالحساب — انظر submit_paper الذي يعتمد على auth.users).
   useEffect(() => {
     if (profile && !prefilledRef.current) {
       prefilledRef.current = true;
-      updateResearcher({ fullName: profile.fullName, email: profile.email });
+      updateResearcher({
+        fullName: state.researcher.fullName || profile.fullName,
+        email: profile.email,
+      });
     }
-  }, [profile, updateResearcher]);
+  }, [profile, updateResearcher, state.researcher.fullName]);
 
   if (loading) {
     return (
@@ -126,6 +131,9 @@ export default function ConferenceSubmitPage() {
         },
       });
 
+      // مسح المسودة من sessionStorage فور نجاح إرسال البحث
+      clearDraft();
+
       navigate(ROUTES.publicConference.submissionSuccess(conference.slug), {
         state: { paperNumber: result.paperNumber },
       });
@@ -191,6 +199,7 @@ export default function ConferenceSubmitPage() {
             onFileStateChange={updateFile}
             onBack={previousStep}
             onNext={nextStep}
+            restoredFromDraft={restoredFromDraft}
           />
         )}
 
@@ -201,7 +210,12 @@ export default function ConferenceSubmitPage() {
             file={state.file}
             agreedToAccuracy={state.agreedToAccuracy}
             submitting={submitting}
-            submitError={submitError}
+            submitError={
+              submitError ||
+              (restoredFromDraft && !state.file.file
+                ? "تمت استعادة بيانات التقديم، لكن يرجى العودة للخطوة السابقة وإعادة اختيار ملف البحث قبل الإرسال."
+                : null)
+            }
             onAgreedChange={setAgreedToAccuracy}
             onBack={previousStep}
             onSubmit={handleSubmit}

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Button, Card } from "@/components/ui";
+import { Alert, Button, Card } from "@/components/ui";
 import { FileDropzone } from "@/features/submissions/components/FileDropzone";
 import { validateSubmissionFile } from "@/features/submissions/validation";
 import { uploadPaperFile, deleteUploadedPaperFile } from "@/features/submissions/services/submissionService";
@@ -11,6 +11,7 @@ interface FileUploadStepProps {
   onFileStateChange: (values: Partial<SelectedFileState>) => void;
   onNext: () => void;
   onBack: () => void;
+  restoredFromDraft?: boolean;
 }
 
 export function FileUploadStep({
@@ -19,6 +20,7 @@ export function FileUploadStep({
   onFileStateChange,
   onNext,
   onBack,
+  restoredFromDraft,
 }: FileUploadStepProps) {
   // يحمل رقم "أحدث عملية اختيار ملف". أي رفع تنتهي نتيجته بعد اختيار لاحق تُعتبر قديمة (stale) وتُتجاهل،
   // بدل أن تكتب فوق حالة اختيار أحدث (كان يسبب عدم تطابق بين الملف المعروض ومساره الفعلي في Storage).
@@ -97,6 +99,12 @@ export function FileUploadStep({
   return (
     <Card className="flex flex-col gap-4">
       <h2 className="text-base font-semibold text-primary-900">رفع ملف البحث</h2>
+
+      {restoredFromDraft && !fileState.file && (
+        <Alert tone="info">
+          تمت استعادة بيانات التقديم السابقة بنجاح. يرجى اختيار ملف البحث للمتابعة.
+        </Alert>
+      )}
 
       <FileDropzone
         fileState={fileState}
