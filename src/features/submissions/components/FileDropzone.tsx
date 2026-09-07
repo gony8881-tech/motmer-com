@@ -14,15 +14,18 @@ function formatFileSize(bytes: number): string {
 interface FileDropzoneProps {
   fileState: SelectedFileState;
   onFileSelected: (file: File) => void;
+  errorMessage?: string | null;
 }
 
-export function FileDropzone({ fileState, onFileSelected }: FileDropzoneProps) {
+export function FileDropzone({ fileState, onFileSelected, errorMessage }: FileDropzoneProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragActive, setDragActive] = useState(false);
   const isUploading = fileState.status === "uploading";
+  const displayError = errorMessage || (fileState.status === "error" ? fileState.errorMessage : null);
 
   function handleDrop(event: DragEvent<HTMLDivElement>) {
     event.preventDefault();
+    event.stopPropagation();
     setDragActive(false);
     if (isUploading) return; // تجنّب اختيار ملف جديد أثناء رفع ملف سابق قيد التنفيذ
     const file = event.dataTransfer.files?.[0];
@@ -34,9 +37,14 @@ export function FileDropzone({ fileState, onFileSelected }: FileDropzoneProps) {
       <div
         onDragOver={(e) => {
           e.preventDefault();
+          e.stopPropagation();
           if (!isUploading) setDragActive(true);
         }}
-        onDragLeave={() => setDragActive(false)}
+        onDragLeave={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setDragActive(false);
+        }}
         onDrop={handleDrop}
         className={cn(
           "flex flex-col items-center gap-3 rounded-md2 border-2 border-dashed px-6 py-10 text-center transition-colors",
@@ -72,7 +80,11 @@ export function FileDropzone({ fileState, onFileSelected }: FileDropzoneProps) {
         />
       </div>
 
-      {fileState.file && (
+      {displayError && (
+        <Alert tone="danger">{displayError}</Alert>
+      )}
+
+      {fileState.file && fileState.status !== "error" && (
         <div className="flex flex-col gap-2 rounded-md2 border border-primary-100 bg-white p-4 text-sm">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <span className="font-medium text-primary-900">{fileState.file.name}</span>
@@ -93,10 +105,6 @@ export function FileDropzone({ fileState, onFileSelected }: FileDropzoneProps) {
 
           {fileState.status === "uploaded" && (
             <span className="text-xs font-medium text-emerald-600">تم رفع الملف بنجاح ✓</span>
-          )}
-
-          {fileState.status === "error" && fileState.errorMessage && (
-            <Alert tone="danger">{fileState.errorMessage}</Alert>
           )}
         </div>
       )}

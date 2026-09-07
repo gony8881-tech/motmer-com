@@ -68,7 +68,7 @@ export function validateSubmissionFile(file: File): string | null {
   }
 
   if (file.size > MAX_FILE_SIZE_BYTES) {
-    return "حجم الملف أكبر من الحد المسموح (10 ميجابايت).";
+    return "حجم الملف أكبر من الحد المسموح (10 ميجابايت). يرجى اختيار ملف أصغر.";
   }
 
   if (file.size <= 0) {
