@@ -1,5 +1,5 @@
 import { useRef, useState, type DragEvent } from "react";
-import { Alert, Button } from "@/components/ui";
+import { Alert } from "@/components/ui";
 import { ALLOWED_FILE_EXTENSIONS } from "@/features/submissions/types";
 import type { SelectedFileState } from "@/features/submissions/types";
 import { cn } from "@/lib/cn";
@@ -55,22 +55,33 @@ export function FileDropzone({ fileState, onFileSelected, errorMessage }: FileDr
         <p className="text-sm text-primary-600">
           اسحب ملف البحث وأفلته هنا، أو
         </p>
-        <Button
-          type="button"
-          variant="secondary"
-          disabled={isUploading}
-          onClick={() => inputRef.current?.click()}
+        <label
+          htmlFor="submission-file-input"
+          role="button"
+          tabIndex={isUploading ? -1 : 0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              inputRef.current?.click();
+            }
+          }}
+          className={cn(
+            "inline-flex items-center justify-center gap-2 rounded-md2 px-4 py-2 text-sm font-medium transition-colors cursor-pointer select-none",
+            "bg-primary-100 text-primary-800 hover:bg-primary-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600",
+            isUploading && "pointer-events-none opacity-50 cursor-not-allowed"
+          )}
         >
           اختر ملف البحث
-        </Button>
+        </label>
         <p className="text-xs text-primary-400">
           الصيغ المدعومة: {ALLOWED_FILE_EXTENSIONS.join("، ")} — الحد الأقصى 10 ميجابايت
         </p>
         <input
+          id="submission-file-input"
           ref={inputRef}
           type="file"
           accept={ALLOWED_FILE_EXTENSIONS.join(",")}
-          className="hidden"
+          className="sr-only"
           disabled={isUploading}
           onChange={(e) => {
             const file = e.target.files?.[0];

@@ -31,6 +31,13 @@ export function FileUploadStep({
   // منع السلوك الافتراضي للمتصفح (فتح الملف أو إعادة تحميل الصفحة) عند إفلات ملف في النافذة.
   useEffect(() => {
     function preventDefaults(e: DragEvent) {
+      // نتحقق من أن الحدث يخص سحب ملفات فعلية لتفادي أي تداخل مع إيماءات اللمس في المتصفحات
+      const isFileDrag = e.dataTransfer?.types
+        ? Array.from(e.dataTransfer.types).includes("Files")
+        : false;
+
+      if (!isFileDrag) return;
+
       e.preventDefault();
     }
     window.addEventListener("dragover", preventDefaults);
