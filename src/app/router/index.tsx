@@ -9,7 +9,9 @@ import { Loading } from "@/components/ui";
 import AdminHome from "@/pages/admin/AdminHome";
 import AdminUsersPage from "@/pages/admin/AdminUsersPage";
 import AdminPapersPage from "@/pages/admin/AdminPapersPage";
-import AdminReviewersPage from "@/pages/admin/AdminReviewersPage";
+import ReviewerListPage from "@/pages/admin/reviewers/ReviewerListPage";
+import ReviewerNewPage from "@/pages/admin/reviewers/ReviewerNewPage";
+import ReviewerDetailPage from "@/pages/admin/reviewers/ReviewerDetailPage";
 import AdminSettingsPage from "@/pages/admin/AdminSettingsPage";
 import ConferenceListPage from "@/pages/admin/conferences/ConferenceListPage";
 import ConferenceNewPage from "@/pages/admin/conferences/ConferenceNewPage";
@@ -108,10 +110,26 @@ export function AppRouter() {
           }
         />
         <Route
-          path={ROUTES.admin.reviewers}
+          path={ROUTES.admin.reviewers.list}
           element={
             <RoleRoute allow={["ADMIN"]}>
-              <AdminReviewersPage />
+              <ReviewerListPage />
+            </RoleRoute>
+          }
+        />
+        <Route
+          path={ROUTES.admin.reviewers.new}
+          element={
+            <RoleRoute allow={["ADMIN"]}>
+              <ReviewerNewPage />
+            </RoleRoute>
+          }
+        />
+        <Route
+          path="/admin/reviewers/:id"
+          element={
+            <RoleRoute allow={["ADMIN"]}>
+              <ReviewerDetailPage />
             </RoleRoute>
           }
         />

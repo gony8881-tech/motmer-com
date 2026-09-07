@@ -68,7 +68,28 @@ export type ResearcherRow = {
   updated_at: string;
 };
 
+export type ReviewerRow = {
+  id: string;
+  full_name: string;
+  email: string;
+  phone: string | null;
+  affiliation: string | null;
+  specialties: string[];
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ReviewerInsert = Omit<ReviewerRow, "id" | "created_at" | "updated_at"> & {
+  id?: string;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type ReviewerUpdate = Partial<Omit<ReviewerRow, "id" | "created_at" | "updated_at">>;
+
 export type PaperRow = {
+
   id: string;
   paper_number: string;
   conference_id: string;
@@ -181,7 +202,14 @@ export type Database = {
         Update: Partial<Omit<PaperVersionRow, "id" | "created_at">>;
         Relationships: [];
       };
+      reviewers: {
+        Row: ReviewerRow;
+        Insert: ReviewerInsert;
+        Update: ReviewerUpdate;
+        Relationships: [];
+      };
     };
+
     Views: Record<string, never>;
     Functions: {
       submit_paper: {

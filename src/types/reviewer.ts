@@ -1,11 +1,16 @@
-import type { Role } from "@/types/role";
-
+/**
+ * النوع التطبيقي (Domain Type) للمحكّم — camelCase، مطابق لجدول reviewers في قاعدة البيانات.
+ * يُبنى من ReviewerRow عبر reviewerService (mapRowToReviewer).
+ */
 export interface Reviewer {
   id: string;
   fullName: string;
   email: string;
+  phone: string | null;
+  affiliation: string | null;
   specialties: string[];
   isActive: boolean;
-  role: Extract<Role, "REVIEWER">;
   createdAt: string;
+  updatedAt: string;
 }
+

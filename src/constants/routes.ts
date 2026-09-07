@@ -10,7 +10,11 @@ export const ROUTES = {
     root: "/admin",
     users: "/admin/users",
     papers: "/admin/papers",
-    reviewers: "/admin/reviewers",
+    reviewers: {
+      list: "/admin/reviewers",
+      new: "/admin/reviewers/new",
+      detail: (id: string) => `/admin/reviewers/${id}`,
+    },
     settings: "/admin/settings",
     conferences: {
       list: "/admin/conferences",

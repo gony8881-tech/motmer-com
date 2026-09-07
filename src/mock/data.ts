@@ -50,12 +50,15 @@ export const mockReviewers: Reviewer[] = [
     id: "reviewer-1",
     fullName: "محكّم تجريبي",
     email: "reviewer@example.com",
+    phone: null,
+    affiliation: "جامعة الملك سعود",
     specialties: ["تمريض", "صحة عامة"],
     isActive: true,
-    role: "REVIEWER",
     createdAt: "2026-08-01T00:00:00.000Z",
+    updatedAt: "2026-08-01T00:00:00.000Z",
   },
 ];
+
 
 export const mockPapers: Paper[] = [
   {

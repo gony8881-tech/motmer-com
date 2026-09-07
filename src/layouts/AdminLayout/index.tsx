@@ -1,4 +1,4 @@
-﻿import { useState, type PropsWithChildren } from "react";
+import { useState, type PropsWithChildren } from "react";
 import {
   Sidebar,
   Topbar,
@@ -22,7 +22,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
     { label: "لوحة التحكم", href: ROUTES.admin.root, icon: <DashboardIcon /> },
     { label: "المؤتمرات", href: ROUTES.admin.conferences.list, icon: <ConferencesIcon /> },
     { label: "الأبحاث", href: ROUTES.admin.papers, icon: <PapersIcon /> },
-    { label: "المحكمون", href: ROUTES.admin.reviewers, icon: <ReviewersIcon /> },
+    { label: "المحكمون", href: ROUTES.admin.reviewers.list, icon: <ReviewersIcon /> },
     { label: "المستخدمون", href: ROUTES.admin.users, icon: <UsersIcon /> },
     { label: "الإعدادات", href: ROUTES.admin.settings, icon: <SettingsIcon /> },
   ];

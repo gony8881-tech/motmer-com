@@ -1,7 +1,9 @@
-/**
+﻿/**
  * Feature: reviewers
- * المسؤولية المستقبلية: أعضاء لجنة التحكيم، تخصصات المحكمين، حالة المحكم، الأبحاث المكلف بها.
- * هذه المرحلة: تجهيز مكان الـ Feature فقط — لا يوجد منطق تنفيذي بعد.
- * الملفات المتوقعة لاحقًا هنا: types.ts, api.ts, hooks.ts, components/
+ * إدارة قائمة المحكّمين (دليل المحكّمين — Reviewer Directory).
  */
-export {};
+export * from "./types";
+export * from "./validation";
+export * from "./services/reviewerService";
+export * from "./hooks/useReviewers";
+export * from "./hooks/useReviewer";
