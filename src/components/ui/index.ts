@@ -9,4 +9,6 @@ export * from "@/components/ui/Modal";
 export * from "@/components/ui/Table";
 export * from "@/components/ui/Alert";
 export * from "@/components/ui/Loading";
+export * from "@/components/ui/Skeleton";
 export * from "@/components/ui/EmptyState";
+
