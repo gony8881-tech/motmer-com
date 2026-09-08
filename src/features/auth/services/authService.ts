@@ -10,6 +10,7 @@ function mapRowToProfile(row: ProfileRow): Profile {
     email: row.email,
     role: row.role,
     organizationId: row.organization_id,
+    reviewerId: row.reviewer_id ?? null,
     isActive: row.is_active,
     createdAt: row.created_at,
     updatedAt: row.updated_at,

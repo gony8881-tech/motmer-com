@@ -10,6 +10,7 @@ export interface Profile {
   email: string;
   role: Role;
   organizationId: string | null;
+  reviewerId: string | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;

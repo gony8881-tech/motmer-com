@@ -12,6 +12,8 @@ function mapRowToReviewer(row: ReviewerRow): Reviewer {
     affiliation: row.affiliation,
     specialties: row.specialties ?? [],
     isActive: row.is_active,
+    invitedAt: row.invited_at ?? null,
+    acceptedAt: row.accepted_at ?? null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -116,3 +118,40 @@ export async function toggleReviewerActive(
 ): Promise<Reviewer> {
   return updateReviewer(id, { isActive: !currentStatus });
 }
+
+/** إرسال أو إعادة إرسال رابط الدعوة للمحكّم عبر Supabase Auth (Edge Function) */
+export async function inviteReviewer(
+  reviewerId: string
+): Promise<{ success: boolean; message: string }> {
+  const client = requireSupabase();
+  const redirectTo = `${window.location.origin}/auth/set-password`;
+
+  const { data, error } = await client.functions.invoke("invite-reviewer", {
+    body: { reviewerId, redirectTo },
+  });
+
+  if (error) {
+    let errorMsg = "تعذّر إرسال الدعوة إلى المحكّم.";
+    try {
+      if (error.context && typeof error.context.json === "function") {
+        const json = await error.context.json();
+        if (json?.message) errorMsg = json.message;
+      } else if (error.message) {
+        errorMsg = error.message;
+      }
+    } catch {
+      if (error.message) errorMsg = error.message;
+    }
+    throw new Error(errorMsg);
+  }
+
+  if (data && data.success === false) {
+    throw new Error(data.message || "تعذّر إرسال الدعوة إلى المحكّم.");
+  }
+
+  return {
+    success: true,
+    message: data?.message || "تم إرسال رابط الدعوة إلى المحكّم بنجاح.",
+  };
+}
+

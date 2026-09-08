@@ -73,6 +73,7 @@ export function AppRouter() {
         <Route path={ROUTES.register} element={<RegisterPage />} />
         <Route path={ROUTES.forgotPassword} element={<ForgotPasswordPage />} />
         <Route path={ROUTES.resetPassword} element={<ResetPasswordPage />} />
+        <Route path={ROUTES.setPassword} element={<ResetPasswordPage />} />
         <Route path={ROUTES.unauthorized} element={<UnauthorizedPage />} />
 
         <Route

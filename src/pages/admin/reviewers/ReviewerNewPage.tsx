@@ -9,6 +9,7 @@ import {
   validateReviewerForm,
   isReviewerFormValid,
   createReviewer,
+  inviteReviewer,
   type ReviewerFormErrors,
   type ReviewerFormValues,
 } from "@/features/reviewers";
@@ -74,7 +75,14 @@ export default function ReviewerNewPage() {
     setSubmitting(true);
     setSubmitError(null);
     try {
-      await createReviewer(values);
+      const created = await createReviewer(values);
+      if (values.isActive) {
+        try {
+          await inviteReviewer(created.id);
+        } catch (inviteErr) {
+          console.warn("Reviewer created but invitation failed to send:", inviteErr);
+        }
+      }
       navigate(ROUTES.admin.reviewers.list);
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : "حدث خطأ غير متوقع.");
@@ -225,10 +233,13 @@ export default function ReviewerNewPage() {
             </h3>
             <Checkbox
               id="isActive"
-              label="تفعيل حساب المحكّم فورًا (جاهز لاستلام أبحاث للتحكيم)"
+              label="تفعيل حساب المحكّم فورًا وإرسال رابط الدعوة بالبريد الإلكتروني"
               checked={values.isActive}
               onChange={(e) => update("isActive", e.target.checked)}
             />
+            <p className="text-xs text-slate-500 pr-6">
+              عند التفعيل، سيتم إرسال دعوة رسمية للمحكّم عبر البريد الإلكتروني برابط لتعيين كلمة المرور وبدء استخدام حسابه.
+            </p>
           </Card>
 
           {/* Submit Actions */}

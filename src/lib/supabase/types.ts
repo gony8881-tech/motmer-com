@@ -76,12 +76,19 @@ export type ReviewerRow = {
   affiliation: string | null;
   specialties: string[];
   is_active: boolean;
+  invited_at: string | null;
+  accepted_at: string | null;
   created_at: string;
   updated_at: string;
 };
 
-export type ReviewerInsert = Omit<ReviewerRow, "id" | "created_at" | "updated_at"> & {
+export type ReviewerInsert = Omit<
+  ReviewerRow,
+  "id" | "created_at" | "updated_at" | "invited_at" | "accepted_at"
+> & {
   id?: string;
+  invited_at?: string | null;
+  accepted_at?: string | null;
   created_at?: string;
   updated_at?: string;
 };
@@ -153,6 +160,7 @@ export type ProfileRow = {
   email: string;
   role: UserRole;
   organization_id: string | null;
+  reviewer_id: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;

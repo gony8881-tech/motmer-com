@@ -1,4 +1,4 @@
-﻿import { useState, type FormEvent, type PropsWithChildren } from "react";
+import { useState, type FormEvent, type PropsWithChildren } from "react";
 import { Link, useParams } from "react-router-dom";
 import { AdminLayout } from "@/layouts/AdminLayout";
 import { PageContainer } from "@/components/layout";
@@ -17,6 +17,7 @@ import {
   useReviewer,
   updateReviewer,
   toggleReviewerActive,
+  inviteReviewer,
   validateReviewerForm,
   isReviewerFormValid,
   type ReviewerFormErrors,
@@ -64,6 +65,11 @@ export default function ReviewerDetailPage() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [toggling, setToggling] = useState(false);
+  const [inviting, setInviting] = useState(false);
+  const [actionFeedback, setActionFeedback] = useState<{
+    type: "success" | "danger";
+    message: string;
+  } | null>(null);
 
   function startEditing() {
     if (!reviewer) return;
@@ -141,6 +147,34 @@ export default function ReviewerDetailPage() {
     }
   }
 
+  async function handleSendInvite() {
+    if (!reviewer) return;
+    if (!reviewer.isActive) {
+      setActionFeedback({
+        type: "danger",
+        message: "لا يمكن إرسال دعوة لمحكّم حسابه معطّل. يرجى تفعيل حسابه أولاً.",
+      });
+      return;
+    }
+    setInviting(true);
+    setActionFeedback(null);
+    try {
+      const res = await inviteReviewer(reviewer.id);
+      setActionFeedback({
+        type: "success",
+        message: res.message || `تم إرسال رابط الدعوة إلى ${reviewer.fullName} بنجاح.`,
+      });
+      reload();
+    } catch (err) {
+      setActionFeedback({
+        type: "danger",
+        message: err instanceof Error ? err.message : "تعذّر إرسال رابط الدعوة.",
+      });
+    } finally {
+      setInviting(false);
+    }
+  }
+
   const initial =
     reviewer?.fullName?.trim().charAt(0) || reviewer?.email?.charAt(0).toUpperCase() || "؟";
 
@@ -163,6 +197,12 @@ export default function ReviewerDetailPage() {
             </Button>
           </Link>
         </div>
+
+        {actionFeedback && (
+          <div className="mb-5">
+            <Alert tone={actionFeedback.type}>{actionFeedback.message}</Alert>
+          </div>
+        )}
 
         {loading && <SkeletonCard />}
 
@@ -187,6 +227,13 @@ export default function ReviewerDetailPage() {
                       <Badge tone={reviewer.isActive ? "success" : "danger"} dot>
                         {reviewer.isActive ? "الحساب نشط" : "الحساب معطّل"}
                       </Badge>
+                      {reviewer.acceptedAt ? (
+                        <Badge tone="success" dot>دعوة مقبولة</Badge>
+                      ) : reviewer.invitedAt ? (
+                        <Badge tone="warning" dot>بانتظار قبول الدعوة</Badge>
+                      ) : (
+                        <Badge tone="neutral">لم تُرسل دعوة</Badge>
+                      )}
                     </div>
                     <p dir="ltr" className="text-sm font-medium text-slate-500 font-mono">
                       {reviewer.email}
@@ -200,7 +247,19 @@ export default function ReviewerDetailPage() {
                 </div>
 
                 {!isEditing && (
-                  <div className="flex items-center gap-2 pt-2 sm:pt-0">
+                  <div className="flex flex-wrap items-center justify-center sm:justify-end gap-2 pt-2 sm:pt-0">
+                    {!reviewer.acceptedAt && (
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        isLoading={inviting}
+                        disabled={!reviewer.isActive || toggling}
+                        onClick={handleSendInvite}
+                        title={!reviewer.isActive ? "يرجى تفعيل الحساب أولاً لإرسال الدعوة" : ""}
+                      >
+                        {reviewer.invitedAt ? "إعادة إرسال الدعوة" : "إرسال رابط الدعوة"}
+                      </Button>
+                    )}
                     <Button
                       size="sm"
                       variant="secondary"
@@ -409,6 +468,57 @@ export default function ReviewerDetailPage() {
                       <span className="text-xs text-slate-400 font-medium">آخر تحديث</span>
                       <p className="text-sm font-semibold text-slate-800">
                         {formatDateAr(reviewer.updatedAt)}
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+
+                {/* Invitation Details Card */}
+                <Card className="p-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-3 mb-4 border-b border-slate-100">
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-800">دعوة حساب المحكّم (Supabase Auth)</h4>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        حالة رابط الدعوة المرسل لتعيين كلمة المرور وتفعيل بوابة التحكيم
+                      </p>
+                    </div>
+                    {!reviewer.acceptedAt && (
+                      <Button
+                        size="sm"
+                        isLoading={inviting}
+                        disabled={!reviewer.isActive || toggling}
+                        onClick={handleSendInvite}
+                      >
+                        {reviewer.invitedAt ? "إعادة إرسال الدعوة بالبريد" : "إرسال رابط الدعوة الآن"}
+                      </Button>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="p-3.5 bg-slate-50/80 rounded-xl border border-slate-100 space-y-1">
+                      <span className="text-xs text-slate-400 font-medium">حالة الدعوة</span>
+                      <div>
+                        {reviewer.acceptedAt ? (
+                          <Badge tone="success" dot>مقبولة وتم تفعيل الحساب</Badge>
+                        ) : reviewer.invitedAt ? (
+                          <Badge tone="warning" dot>تم الإرسال (بانتظار القبول)</Badge>
+                        ) : (
+                          <Badge tone="neutral">لم تُرسل بعد</Badge>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="p-3.5 bg-slate-50/80 rounded-xl border border-slate-100 space-y-1">
+                      <span className="text-xs text-slate-400 font-medium">تاريخ إرسال آخر دعوة</span>
+                      <p className="text-sm font-semibold text-slate-800">
+                        {reviewer.invitedAt ? formatDateAr(reviewer.invitedAt) : "—"}
+                      </p>
+                    </div>
+
+                    <div className="p-3.5 bg-slate-50/80 rounded-xl border border-slate-100 space-y-1">
+                      <span className="text-xs text-slate-400 font-medium">تاريخ قبول الدعوة</span>
+                      <p className="text-sm font-semibold text-slate-800">
+                        {reviewer.acceptedAt ? formatDateAr(reviewer.acceptedAt) : "—"}
                       </p>
                     </div>
                   </div>

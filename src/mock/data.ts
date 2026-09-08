@@ -54,6 +54,8 @@ export const mockReviewers: Reviewer[] = [
     affiliation: "جامعة الملك سعود",
     specialties: ["تمريض", "صحة عامة"],
     isActive: true,
+    invitedAt: null,
+    acceptedAt: null,
     createdAt: "2026-08-01T00:00:00.000Z",
     updatedAt: "2026-08-01T00:00:00.000Z",
   },

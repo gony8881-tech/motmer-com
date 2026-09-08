@@ -10,6 +10,8 @@ export interface Reviewer {
   affiliation: string | null;
   specialties: string[];
   isActive: boolean;
+  invitedAt: string | null;
+  acceptedAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
