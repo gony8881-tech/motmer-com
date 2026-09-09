@@ -1,7 +1,7 @@
 import { requireSupabase } from "@/lib/supabase/client";
 import type { ReviewerRow } from "@/lib/supabase/types";
 import type { Reviewer } from "@/types";
-import type { ReviewerFormValues } from "../types";
+import type { ReviewerFormValues, ReviewerAssignedPaper } from "../types";
 
 function mapRowToReviewer(row: ReviewerRow): Reviewer {
   return {
@@ -154,4 +154,37 @@ export async function inviteReviewer(
     message: data?.message || "تم إرسال رابط الدعوة إلى المحكّم بنجاح.",
   };
 }
+
+/** جلب جميع الأبحاث المعيّنة لمحكّم محدد (تُستخدم في لوحة المحكّم) */
+export async function getAssignedPapersForReviewer(
+  reviewerId: string
+): Promise<ReviewerAssignedPaper[]> {
+  const client = requireSupabase();
+  const { data, error } = await client
+    .from("papers")
+    .select("id, paper_number, conference_id, title, abstract, scientific_field, keywords, status, submitted_at, conferences(title)")
+    .eq("assigned_reviewer_id", reviewerId)
+    .order("submitted_at", { ascending: false });
+
+  if (error) {
+    throw new Error("حدث خطأ أثناء تحميل الأبحاث المسندة إليك.");
+  }
+
+  return (data ?? []).map((row) => {
+    const conf = row.conferences as unknown as { title: string } | null;
+    return {
+      id: row.id,
+      paperNumber: row.paper_number,
+      conferenceId: row.conference_id,
+      conferenceTitle: conf?.title ?? "—",
+      title: row.title,
+      abstract: row.abstract,
+      scientificField: row.scientific_field,
+      keywords: row.keywords ?? [],
+      status: row.status,
+      submittedAt: row.submitted_at,
+    };
+  });
+}
+
 
