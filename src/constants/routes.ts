@@ -26,7 +26,12 @@ export const ROUTES = {
     submissionDetail: (id: string) => `/admin/submissions/${id}`,
   },
   researcher: { root: "/researcher", submit: "/researcher/submit" },
-  reviewer: { root: "/reviewer", assigned: "/reviewer/assigned" },
+  reviewer: {
+    root: "/reviewer",
+    assigned: "/reviewer/assigned",
+    assignmentDetail: (id: string) => `/reviewer/assignments/${id}`,
+    reviewForm: (id: string) => `/reviewer/assignments/${id}/review`,
+  },
   publicConference: {
     detail: (slug: string) => `/conference/${slug}`,
     submit: (slug: string) => `/conference/${slug}/submit`,

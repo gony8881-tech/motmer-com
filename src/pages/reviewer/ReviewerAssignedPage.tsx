@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { Link } from "react-router-dom";
 import { ReviewerLayout } from "@/layouts/ReviewerLayout";
 import { PageContainer } from "@/components/layout";
 import {
@@ -15,42 +16,54 @@ import {
   TableHead,
   TableRow,
 } from "@/components/ui";
-import { useReviewerAssignedPapers } from "@/features/reviewers";
-import { PAPER_STATUS_LABELS_AR } from "@/features/workflow";
-import { formatDateAr } from "@/utils/date";
+import {
+  useReviewerWorkflowDashboard,
+  getAssignmentStatusBadge,
+  getDeadlineInfo,
+  getReviewTypeBadge,
+} from "@/features/reviewers";
+import { ROUTES } from "@/constants/routes";
 
-function getStatusBadgeTone(status: string): "neutral" | "success" | "warning" | "danger" | "info" | "primary" {
-  switch (status) {
-    case "ACCEPTED":
-      return "success";
-    case "REJECTED":
-    case "INITIAL_SCREENING_REJECTED":
-      return "danger";
-    case "UNDER_REVIEW":
-    case "READY_FOR_REVIEW":
-      return "info";
-    case "REVISION_REQUESTED":
-      return "warning";
-    default:
-      return "neutral";
-  }
-}
+type TabFilter = "all" | "pending" | "active" | "completed";
 
 export default function ReviewerAssignedPage() {
-  const { papers, loading, error, reload } = useReviewerAssignedPapers();
+  const {
+    assignments,
+    pendingCount,
+    activeCount,
+    completedCount,
+    loading,
+    error,
+    reload,
+  } = useReviewerWorkflowDashboard();
+
+  const [activeTab, setActiveTab] = useState<TabFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const filteredPapers = useMemo(() => {
+  const filteredAssignments = useMemo(() => {
+    let list = assignments;
+
+    if (activeTab === "pending") {
+      list = list.filter((a) => a.assignmentStatus === "PENDING");
+    } else if (activeTab === "active") {
+      list = list.filter((a) => a.assignmentStatus === "ACCEPTED");
+    } else if (activeTab === "completed") {
+      list = list.filter((a) => a.assignmentStatus === "COMPLETED");
+    }
+
     const q = searchQuery.trim().toLowerCase();
-    if (!q) return papers;
-    return papers.filter(
-      (p) =>
-        p.title.toLowerCase().includes(q) ||
-        p.paperNumber.toLowerCase().includes(q) ||
-        p.conferenceTitle.toLowerCase().includes(q) ||
-        p.scientificField.toLowerCase().includes(q)
-    );
-  }, [papers, searchQuery]);
+    if (q) {
+      list = list.filter(
+        (a) =>
+          a.paperTitle.toLowerCase().includes(q) ||
+          a.paperNumber.toLowerCase().includes(q) ||
+          a.conferenceTitle.toLowerCase().includes(q) ||
+          a.scientificField.toLowerCase().includes(q)
+      );
+    }
+
+    return list;
+  }, [assignments, activeTab, searchQuery]);
 
   return (
     <ReviewerLayout>
@@ -59,15 +72,15 @@ export default function ReviewerAssignedPage() {
         <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <div className="flex items-center gap-2.5">
-              <h2 className="text-xl font-bold text-slate-900">الأبحاث المعيّنة للتحكيم</h2>
-              {papers.length > 0 && (
+              <h2 className="text-xl font-bold text-slate-900">الأبحاث والتكليفات العلمية</h2>
+              {assignments.length > 0 && (
                 <span className="text-xs text-primary-800 bg-primary-50 border border-primary-200 px-2.5 py-0.5 rounded-full font-bold">
-                  {papers.length} بحث
+                  {assignments.length} بحث
                 </span>
               )}
             </div>
             <p className="text-xs text-slate-500 mt-1">
-              قائمة الأبحاث العلمية المحالة إليك من إدارة المؤتمرات لإجراء التقييم العلمي
+              متابعة الأوراق البحثية المحالة إليك للتحكيم، إدارة المواعيد النهائية، وتقديم التقارير
             </p>
           </div>
 
@@ -82,19 +95,72 @@ export default function ReviewerAssignedPage() {
           </Button>
         </div>
 
-        {/* Search Bar */}
-        {papers.length > 0 && (
-          <div className="mb-6 max-w-md">
+        {/* Tabs & Search Filter */}
+        <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          {/* Tabs */}
+          <div className="flex items-center gap-1.5 p-1 bg-slate-100/80 rounded-xl border border-slate-200 text-xs self-start overflow-x-auto max-w-full">
+            <button
+              type="button"
+              onClick={() => setActiveTab("all")}
+              className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+                activeTab === "all"
+                  ? "bg-white text-slate-900 shadow-xs"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              الكل ({assignments.length})
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab("pending")}
+              className={`px-3 py-1.5 rounded-lg font-bold transition-all flex items-center gap-1.5 ${
+                activeTab === "pending"
+                  ? "bg-white text-amber-700 shadow-xs"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              بانتظار الرد ({pendingCount})
+              {pendingCount > 0 && <span className="h-2 w-2 rounded-full bg-amber-500"></span>}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab("active")}
+              className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+                activeTab === "active"
+                  ? "bg-white text-sky-700 shadow-xs"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              قيد التحكيم ({activeCount})
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab("completed")}
+              className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+                activeTab === "completed"
+                  ? "bg-white text-emerald-700 shadow-xs"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              مكتملة ({completedCount})
+            </button>
+          </div>
+
+          {/* Search */}
+          <div className="w-full sm:w-72">
             <Input
               placeholder="ابحث برقم البحث أو العنوان أو المؤتمر..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="text-sm"
+              className="text-xs"
             />
           </div>
-        )}
+        </div>
 
-        {/* Loading / Error States */}
+        {/* Content States */}
         {loading && <SkeletonTable rows={4} columns={6} />}
 
         {!loading && error && (
@@ -103,31 +169,31 @@ export default function ReviewerAssignedPage() {
           </div>
         )}
 
-        {/* Empty State */}
-        {!loading && !error && papers.length === 0 && (
+        {!loading && !error && assignments.length === 0 && (
           <EmptyState
             title="لا توجد أبحاث معيّنة بعد"
             description="عندما تقوم إدارة المؤتمر بإسناد أبحاث علمية إليك لتحكيمها، ستظهر في هذه الصفحة مباشرة مع كافة التفاصيل والملفات."
           />
         )}
 
-        {/* Filter Empty */}
-        {!loading && !error && papers.length > 0 && filteredPapers.length === 0 && (
+        {!loading && !error && assignments.length > 0 && filteredAssignments.length === 0 && (
           <div className="text-center py-12 bg-white rounded-2xl border border-slate-200">
-            <p className="text-sm text-slate-500">لا توجد أبحاث مطابقة لكلمة البحث "{searchQuery}".</p>
+            <p className="text-xs text-slate-500">لا توجد نتائج مطابقة للتصفية أو البحث المحدد.</p>
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setSearchQuery("")}
-              className="mt-2 text-primary-700"
+              onClick={() => {
+                setActiveTab("all");
+                setSearchQuery("");
+              }}
+              className="mt-2 text-primary-700 text-xs"
             >
-              إلغاء التصفية
+              إعادة تعيين الفلترة
             </Button>
           </div>
         )}
 
-        {/* Data Views */}
-        {!loading && !error && filteredPapers.length > 0 && (
+        {!loading && !error && filteredAssignments.length > 0 && (
           <>
             {/* Desktop Table */}
             <div className="hidden md:block">
@@ -137,112 +203,125 @@ export default function ReviewerAssignedPage() {
                     <TableCell>رقم البحث</TableCell>
                     <TableCell>عنوان البحث</TableCell>
                     <TableCell>المؤتمر</TableCell>
-                    <TableCell>المجال العلمي</TableCell>
-                    <TableCell>تاريخ الإحالة</TableCell>
+                    <TableCell>نوع التحكيم</TableCell>
+                    <TableCell>المهلة الزمنية</TableCell>
                     <TableCell>الحالة</TableCell>
+                    <TableCell className="text-left">الإجراء</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {filteredPapers.map((paper) => (
-                    <TableRow key={paper.id}>
-                      <TableCell className="font-mono text-xs font-semibold text-primary-900">
-                        {paper.paperNumber}
-                      </TableCell>
-                      <TableCell className="font-medium text-slate-900 max-w-sm">
-                        <div className="font-semibold text-slate-900 mb-0.5">{paper.title}</div>
-                        {paper.abstract && (
-                          <div className="text-xs text-slate-500 line-clamp-1" title={paper.abstract}>
-                            {paper.abstract}
+                  {filteredAssignments.map((item) => {
+                    const statusBadge = getAssignmentStatusBadge(item.assignmentStatus);
+                    const reviewTypeBadge = getReviewTypeBadge(item.reviewType);
+                    const deadline = getDeadlineInfo(item.dueDate);
+
+                    return (
+                      <TableRow key={item.assignmentId}>
+                        <TableCell className="font-mono text-xs font-semibold text-primary-900">
+                          {item.paperNumber}
+                        </TableCell>
+                        <TableCell className="font-medium text-slate-900 max-w-sm">
+                          <div className="font-bold text-slate-900 truncate" title={item.paperTitle}>
+                            {item.paperTitle}
                           </div>
-                        )}
-                        {paper.keywords.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mt-1.5">
-                            {paper.keywords.slice(0, 3).map((kw) => (
-                              <span
-                                key={kw}
-                                className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded"
-                              >
-                                {kw}
-                              </span>
-                            ))}
+                          <div className="text-[11px] text-slate-400 mt-0.5">
+                            {item.scientificField}
                           </div>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-slate-600 text-sm">
-                        {paper.conferenceTitle}
-                      </TableCell>
-                      <TableCell className="text-slate-600 text-sm">
-                        {paper.scientificField}
-                      </TableCell>
-                      <TableCell className="text-slate-500 text-xs">
-                        {formatDateAr(paper.submittedAt)}
-                      </TableCell>
-                      <TableCell>
-                        <Badge tone={getStatusBadgeTone(paper.status)} dot>
-                          {PAPER_STATUS_LABELS_AR[paper.status as keyof typeof PAPER_STATUS_LABELS_AR] || paper.status}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                        </TableCell>
+                        <TableCell className="text-slate-600 text-xs">
+                          {item.conferenceTitle}
+                        </TableCell>
+                        <TableCell>
+                          <Badge tone={reviewTypeBadge.tone} className="text-[10px]">
+                            {reviewTypeBadge.label}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {item.assignmentStatus === "COMPLETED" ? (
+                            <span className="text-xs text-slate-400 font-medium">مكتمل</span>
+                          ) : (
+                            <Badge tone={deadline.tone} className="text-xs">
+                              {deadline.label}
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Badge tone={statusBadge.tone} dot>
+                            {statusBadge.label}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-left">
+                          <Link to={ROUTES.reviewer.assignmentDetail(item.assignmentId)}>
+                            <Button size="sm" variant={item.assignmentStatus === "PENDING" ? "primary" : "outline"}>
+                              {item.assignmentStatus === "PENDING"
+                                ? "الرد على الدعوة"
+                                : item.assignmentStatus === "ACCEPTED"
+                                ? "متابعة التحكيم"
+                                : "عرض التفاصيل"}
+                            </Button>
+                          </Link>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
 
             {/* Mobile Cards */}
             <div className="space-y-3.5 md:hidden">
-              {filteredPapers.map((paper) => (
-                <Card key={paper.id} className="p-4 space-y-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <span className="font-mono text-xs font-bold text-primary-900 bg-primary-50 px-2 py-0.5 rounded">
-                      {paper.paperNumber}
-                    </span>
-                    <Badge tone={getStatusBadgeTone(paper.status)} dot>
-                      {PAPER_STATUS_LABELS_AR[paper.status as keyof typeof PAPER_STATUS_LABELS_AR] || paper.status}
-                    </Badge>
-                  </div>
+              {filteredAssignments.map((item) => {
+                const statusBadge = getAssignmentStatusBadge(item.assignmentStatus);
+                const reviewTypeBadge = getReviewTypeBadge(item.reviewType);
+                const deadline = getDeadlineInfo(item.dueDate);
 
-                  <div>
-                    <h4 className="font-semibold text-slate-900 text-sm leading-snug">
-                      {paper.title}
-                    </h4>
-                    {paper.abstract && (
-                      <p className="text-xs text-slate-500 line-clamp-2 mt-1">
-                        {paper.abstract}
-                      </p>
-                    )}
-                  </div>
-
-                  {paper.keywords.length > 0 && (
-                    <div className="flex flex-wrap gap-1">
-                      {paper.keywords.map((kw) => (
-                        <span
-                          key={kw}
-                          className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded"
-                        >
-                          {kw}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-
-                  <div className="pt-2.5 border-t border-slate-100 flex flex-col gap-1.5 text-xs text-slate-600">
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">المؤتمر:</span>
-                      <span className="font-medium text-slate-700 truncate max-w-[200px]">
-                        {paper.conferenceTitle}
+                return (
+                  <Card key={item.assignmentId} className="p-4 space-y-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="font-mono text-xs font-bold text-primary-900 bg-primary-50 px-2 py-0.5 rounded">
+                        {item.paperNumber}
                       </span>
+                      <div className="flex items-center gap-1.5">
+                        <Badge tone={reviewTypeBadge.tone} className="text-[10px]">
+                          {reviewTypeBadge.label}
+                        </Badge>
+                        <Badge tone={statusBadge.tone} dot>
+                          {statusBadge.label}
+                        </Badge>
+                      </div>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">المجال العلمي:</span>
-                      <span className="font-medium text-slate-700">{paper.scientificField}</span>
+
+                    <div>
+                      <h4 className="font-bold text-slate-900 text-sm leading-snug">
+                        {item.paperTitle}
+                      </h4>
+                      <p className="text-xs text-slate-500 mt-0.5">{item.conferenceTitle}</p>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">تاريخ الإحالة:</span>
-                      <span className="text-slate-500">{formatDateAr(paper.submittedAt)}</span>
+
+                    <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+                      <div>
+                        <span className="text-slate-400">المهلة: </span>
+                        {item.assignmentStatus === "COMPLETED" ? (
+                          <span className="text-slate-500 font-medium">مكتمل</span>
+                        ) : (
+                          <span className={`font-semibold ${deadline.isOverdue ? "text-red-600" : "text-slate-700"}`}>
+                            {deadline.label}
+                          </span>
+                        )}
+                      </div>
+                      <Link to={ROUTES.reviewer.assignmentDetail(item.assignmentId)}>
+                        <Button size="sm" variant={item.assignmentStatus === "PENDING" ? "primary" : "outline"}>
+                          {item.assignmentStatus === "PENDING"
+                            ? "الرد"
+                            : item.assignmentStatus === "ACCEPTED"
+                            ? "تحكيم"
+                            : "تفاصيل"}
+                        </Button>
+                      </Link>
                     </div>
-                  </div>
-                </Card>
-              ))}
+                  </Card>
+                );
+              })}
             </div>
           </>
         )}

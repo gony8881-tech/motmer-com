@@ -24,6 +24,8 @@ import ResearcherSubmitPage from "@/pages/researcher/ResearcherSubmitPage";
 
 import ReviewerHome from "@/pages/reviewer/ReviewerHome";
 import ReviewerAssignedPage from "@/pages/reviewer/ReviewerAssignedPage";
+import ReviewerAssignmentDetailPage from "@/pages/reviewer/ReviewerAssignmentDetailPage";
+import ReviewFormPage from "@/pages/reviewer/ReviewFormPage";
 
 import ConferencePublicPage from "@/pages/public/ConferencePublicPage";
 import ConferenceSubmitPage from "@/pages/public/ConferenceSubmitPage";
@@ -215,6 +217,22 @@ export function AppRouter() {
           element={
             <RoleRoute allow={["REVIEWER"]}>
               <ReviewerAssignedPage />
+            </RoleRoute>
+          }
+        />
+        <Route
+          path="/reviewer/assignments/:id"
+          element={
+            <RoleRoute allow={["REVIEWER"]}>
+              <ReviewerAssignmentDetailPage />
+            </RoleRoute>
+          }
+        />
+        <Route
+          path="/reviewer/assignments/:id/review"
+          element={
+            <RoleRoute allow={["REVIEWER"]}>
+              <ReviewFormPage />
             </RoleRoute>
           }
         />

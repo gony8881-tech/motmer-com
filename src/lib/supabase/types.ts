@@ -167,6 +167,56 @@ export type ProfileRow = {
   updated_at: string;
 };
 
+export type PaperReviewerAssignmentRow = {
+  id: string;
+  paper_id: string;
+  reviewer_id: string;
+  status: string;
+  invitation_sent_at: string;
+  responded_at: string | null;
+  decline_reason: string | null;
+  due_date: string;
+  extension_status: string;
+  extension_requested_days: number | null;
+  extension_reason: string | null;
+  extension_requested_at: string | null;
+  extension_responded_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ReviewReportRow = {
+  id: string;
+  assignment_id: string;
+  paper_id: string;
+  reviewer_id: string;
+  status: string;
+  recommendation: string | null;
+  originality_score: number | null;
+  methodology_score: number | null;
+  clarity_score: number | null;
+  significance_score: number | null;
+  overall_score: number | null;
+  comments_for_author: string | null;
+  confidential_comments_for_editor: string | null;
+  attachment_file_path: string | null;
+  attachment_file_name: string | null;
+  submitted_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type NotificationRow = {
+  id: string;
+  user_id: string;
+  title: string;
+  message: string;
+  type: string;
+  link: string | null;
+  is_read: boolean;
+  created_at: string;
+};
+
 export type Database = {
   public: {
     Tables: {
@@ -224,9 +274,28 @@ export type Database = {
         Update: ReviewerUpdate;
         Relationships: [];
       };
+      paper_reviewer_assignments: {
+        Row: PaperReviewerAssignmentRow;
+        Insert: Partial<PaperReviewerAssignmentRow>;
+        Update: Partial<PaperReviewerAssignmentRow>;
+        Relationships: [];
+      };
+      review_reports: {
+        Row: ReviewReportRow;
+        Insert: Partial<ReviewReportRow>;
+        Update: Partial<ReviewReportRow>;
+        Relationships: [];
+      };
+      notifications: {
+        Row: NotificationRow;
+        Insert: Partial<NotificationRow>;
+        Update: Partial<NotificationRow>;
+        Relationships: [];
+      };
     };
 
-    Views: Record<string, never>;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    Views: Record<string, any>;
     Functions: {
       submit_paper: {
         Args: { payload: SubmitPaperPayload };
