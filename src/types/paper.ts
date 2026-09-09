@@ -9,6 +9,7 @@ export interface Paper {
   paperNumber: string;
   conferenceId: string;
   researcherId: string;
+  assignedReviewerId: string | null;
   title: string;
   abstract: string;
   scientificField: string;
@@ -23,4 +24,5 @@ export interface Paper {
 export interface PaperWithResearcher extends Paper {
   researcherFullName: string;
   researcherEmail: string;
+  assignedReviewerFullName?: string | null;
 }

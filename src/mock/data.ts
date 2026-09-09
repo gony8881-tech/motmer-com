@@ -70,6 +70,7 @@ export const mockPapers: Paper[] = [
     abstract: "ملخص تجريبي",
     conferenceId: "conf-1",
     researcherId: "researcher-1",
+    assignedReviewerId: null,
     scientificField: "تمريض",
     keywords: [],
     status: PAPER_STATUS.SUBMITTED,

@@ -101,6 +101,7 @@ export type PaperRow = {
   paper_number: string;
   conference_id: string;
   researcher_id: string;
+  assigned_reviewer_id: string | null;
   title: string;
   abstract: string;
   scientific_field: string;
@@ -200,6 +201,13 @@ export type Database = {
             columns: ["conference_id"];
             isOneToOne: false;
             referencedRelation: "conferences";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "papers_assigned_reviewer_id_fkey";
+            columns: ["assigned_reviewer_id"];
+            isOneToOne: false;
+            referencedRelation: "reviewers";
             referencedColumns: ["id"];
           }
         ];

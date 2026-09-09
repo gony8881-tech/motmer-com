@@ -1,12 +1,15 @@
 import { requireSupabase } from "@/lib/supabase/client";
 import type {
   PaperRow,
+  PaperStatusRow,
   PaperVersionRow,
   ResearcherRow,
+  ReviewerRow,
   SubmitPaperPayload,
 } from "@/lib/supabase/types";
 import type { PaperFormValues, ResearcherFormValues, SubmissionListItem } from "@/features/submissions/types";
-import type { Paper, PaperWithResearcher } from "@/types";
+import type { Paper, PaperWithResearcher, Reviewer } from "@/types";
+import type { PaperStatus } from "@/features/workflow";
 
 const PAPERS_BUCKET = "papers";
 
@@ -134,12 +137,9 @@ export async function getSubmissionsForConference(
   conferenceId: string
 ): Promise<SubmissionListItem[]> {
   const client = requireSupabase();
-  // ملاحظة: نستخدم `as any` هنا فقط على استعلام الـ join (select متعدد الجداول)
-  // لأن Database type المكتوب يدويًا في هذا المشروع (بدون Relationships metadata)
-  // لا يوصف به Join بين الجداول بشكل كامل عبر postgrest-js؛ الشكل الفعلي للنتيجة
-  // يُتحقق منه يدويًا في mapping أدناه بدلاً من الاعتماد على الاستدلال التلقائي.
+  // استعلام مع join لجلب الباحث والمحكّم المعيّن إن وُجد
   const { data, error } = await (client.from("papers") as any)
-    .select("id,paper_number,title,scientific_field,submitted_at,status,researchers(full_name)")
+    .select("id,paper_number,title,scientific_field,submitted_at,status,assigned_reviewer_id,researchers(full_name),reviewers(full_name)")
     .eq("conference_id", conferenceId)
     .order("submitted_at", { ascending: false });
 
@@ -154,36 +154,44 @@ export async function getSubmissionsForConference(
     scientific_field: string;
     submitted_at: string;
     status: string;
+    assigned_reviewer_id: string | null;
     researchers: Pick<ResearcherRow, "full_name"> | null;
+    reviewers: { full_name: string } | { full_name: string }[] | null;
   }
 
-  return ((data ?? []) as JoinedRow[]).map((row) => ({
-    id: row.id,
-    paperNumber: row.paper_number,
-    title: row.title,
-    researcherFullName: row.researchers?.full_name ?? "—",
-    scientificField: row.scientific_field,
-    submittedAt: row.submitted_at,
-    status: row.status,
-  }));
+  return ((data ?? []) as JoinedRow[]).map((row) => {
+    const rev = Array.isArray(row.reviewers) ? row.reviewers[0] : row.reviewers;
+    return {
+      id: row.id,
+      paperNumber: row.paper_number,
+      title: row.title,
+      researcherFullName: row.researchers?.full_name ?? "—",
+      assignedReviewerFullName: rev?.full_name ?? null,
+      scientificField: row.scientific_field,
+      submittedAt: row.submitted_at,
+      status: row.status,
+    };
+  });
 }
 
 export interface SubmissionDetail {
   paper: PaperWithResearcher;
   researcher: ResearcherRow;
   versions: PaperVersionRow[];
+  assignedReviewer: Reviewer | null;
 }
 
-/** تفاصيل بحث واحد + الباحث + كل نسخه — لصفحة /admin/submissions/:id */
+/** تفاصيل بحث واحد + الباحث + كل نسخه + المحكّم المعيّن — لصفحة /admin/submissions/:id */
 export async function getSubmissionById(paperId: string): Promise<SubmissionDetail | null> {
   const client = requireSupabase();
   interface JoinedDetailRow extends PaperRow {
     researchers: ResearcherRow | null;
     paper_versions: PaperVersionRow[] | null;
+    reviewers: ReviewerRow | ReviewerRow[] | null;
   }
 
   const { data, error } = await (client.from("papers") as any)
-    .select("*,researchers(*),paper_versions(*)")
+    .select("*,researchers(*),paper_versions(*),reviewers(*)")
     .eq("id", paperId)
     .maybeSingle();
 
@@ -197,11 +205,52 @@ export async function getSubmissionById(paperId: string): Promise<SubmissionDeta
   const researcher = row.researchers as ResearcherRow;
   const versions = row.paper_versions ?? [];
 
+  let assignedReviewer: Reviewer | null = null;
+  const reviewerRow = Array.isArray(row.reviewers) ? row.reviewers[0] : row.reviewers;
+
+  if (reviewerRow) {
+    assignedReviewer = {
+      id: reviewerRow.id,
+      fullName: reviewerRow.full_name,
+      email: reviewerRow.email,
+      phone: reviewerRow.phone,
+      affiliation: reviewerRow.affiliation,
+      specialties: reviewerRow.specialties ?? [],
+      isActive: reviewerRow.is_active,
+      invitedAt: reviewerRow.invited_at ?? null,
+      acceptedAt: reviewerRow.accepted_at ?? null,
+      createdAt: reviewerRow.created_at,
+      updatedAt: reviewerRow.updated_at,
+    };
+  } else if (row.assigned_reviewer_id) {
+    const { data: revData } = await client
+      .from("reviewers")
+      .select("*")
+      .eq("id", row.assigned_reviewer_id)
+      .maybeSingle();
+    if (revData) {
+      assignedReviewer = {
+        id: revData.id,
+        fullName: revData.full_name,
+        email: revData.email,
+        phone: revData.phone,
+        affiliation: revData.affiliation,
+        specialties: revData.specialties ?? [],
+        isActive: revData.is_active,
+        invitedAt: revData.invited_at ?? null,
+        acceptedAt: revData.accepted_at ?? null,
+        createdAt: revData.created_at,
+        updatedAt: revData.updated_at,
+      };
+    }
+  }
+
   const paper: PaperWithResearcher = {
     id: row.id,
     paperNumber: row.paper_number,
     conferenceId: row.conference_id,
     researcherId: row.researcher_id,
+    assignedReviewerId: row.assigned_reviewer_id ?? null,
     title: row.title,
     abstract: row.abstract,
     scientificField: row.scientific_field,
@@ -212,25 +261,66 @@ export async function getSubmissionById(paperId: string): Promise<SubmissionDeta
     updatedAt: row.updated_at,
     researcherFullName: researcher?.full_name ?? "—",
     researcherEmail: researcher?.email ?? "—",
+    assignedReviewerFullName: assignedReviewer?.fullName ?? null,
   };
 
   return {
     paper,
     researcher,
     versions: versions.sort((a, b) => a.version_number - b.version_number),
+    assignedReviewer,
   };
 }
 
-/** رابط مؤقت (Signed URL) لتنزيل نسخة من ملف البحث — الـ bucket خاص (private). */
-export async function getPaperFileSignedUrl(storagePath: string): Promise<string> {
+/** رابط مؤقت (Signed URL) لمعاينة أو تنزيل نسخة من ملف البحث — الـ bucket خاص (private). */
+export async function getPaperFileSignedUrl(
+  storagePath: string,
+  download?: boolean | string
+): Promise<string> {
   const client = requireSupabase();
+  const options = download ? { download } : undefined;
   const { data, error } = await client.storage
     .from(PAPERS_BUCKET)
-    .createSignedUrl(storagePath, 60 * 5);
+    .createSignedUrl(storagePath, 60 * 5, options);
 
   if (error || !data) {
-    throw new Error("تعذّر إنشاء رابط تنزيل الملف.");
+    throw new Error("تعذّر إنشاء رابط الملف.");
   }
 
   return data.signedUrl;
+}
+
+/** تحديث حالة البحث (قبول / رفض / اعتماد للتحكيم ...) */
+export async function updatePaperStatus(
+  paperId: string,
+  status: PaperStatus
+): Promise<void> {
+  const client = requireSupabase();
+  const { error } = await client
+    .from("papers")
+    .update({ status: status as PaperStatusRow })
+    .eq("id", paperId);
+
+  if (error) {
+    throw new Error("حدث خطأ أثناء تحديث حالة البحث. يرجى المحاولة مرة أخرى.");
+  }
+}
+
+/** إسناد محكّم للبحث وتحديث حالته تلقائيًا إلى UNDER_REVIEW */
+export async function assignReviewerToPaper(
+  paperId: string,
+  reviewerId: string
+): Promise<void> {
+  const client = requireSupabase();
+  const { error } = await client
+    .from("papers")
+    .update({
+      assigned_reviewer_id: reviewerId,
+      status: "UNDER_REVIEW",
+    })
+    .eq("id", paperId);
+
+  if (error) {
+    throw new Error("حدث خطأ أثناء تعيين المحكّم للبحث. يرجى المحاولة مرة أخرى.");
+  }
 }

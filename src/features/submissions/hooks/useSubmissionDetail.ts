@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type Dispatch, type SetStateAction } from "react";
 import {
   getSubmissionById,
   type SubmissionDetail,
@@ -9,6 +9,8 @@ interface UseSubmissionDetailResult {
   loading: boolean;
   error: string | null;
   notFound: boolean;
+  reload: () => void;
+  setDetail: Dispatch<SetStateAction<SubmissionDetail | null>>;
 }
 
 export function useSubmissionDetail(paperId: string | undefined): UseSubmissionDetailResult {
@@ -16,6 +18,11 @@ export function useSubmissionDetail(paperId: string | undefined): UseSubmissionD
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notFound, setNotFound] = useState(false);
+  const [reloadTrigger, setReloadTrigger] = useState(0);
+
+  const reload = useCallback(() => {
+    setReloadTrigger((prev) => prev + 1);
+  }, []);
 
   useEffect(() => {
     if (!paperId) {
@@ -47,7 +54,7 @@ export function useSubmissionDetail(paperId: string | undefined): UseSubmissionD
     return () => {
       cancelled = true;
     };
-  }, [paperId]);
+  }, [paperId, reloadTrigger]);
 
-  return { detail, loading, error, notFound };
+  return { detail, loading, error, notFound, reload, setDetail };
 }

@@ -107,6 +107,7 @@ export interface SubmissionListItem {
   paperNumber: string;
   title: string;
   researcherFullName: string;
+  assignedReviewerFullName?: string | null;
   scientificField: string;
   submittedAt: string;
   status: string;

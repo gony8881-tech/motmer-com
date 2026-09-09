@@ -1,4 +1,4 @@
-﻿import { Link, useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { AdminLayout } from "@/layouts/AdminLayout";
 import { PageContainer } from "@/components/layout";
 import {
@@ -46,7 +46,7 @@ export default function AdminSubmissionsListPage() {
           )}
         </div>
 
-        {(loading || loadingConference) && <SkeletonTable rows={4} columns={6} />}
+        {(loading || loadingConference) && <SkeletonTable rows={4} columns={7} />}
 
         {!loading && error && (
           <Alert tone="danger">
@@ -72,6 +72,7 @@ export default function AdminSubmissionsListPage() {
                     <TableCell>رقم البحث</TableCell>
                     <TableCell>عنوان البحث</TableCell>
                     <TableCell>اسم الباحث</TableCell>
+                    <TableCell>المحكّم المعيّن</TableCell>
                     <TableCell>المجال</TableCell>
                     <TableCell>تاريخ التقديم</TableCell>
                     <TableCell>الحالة</TableCell>
@@ -88,6 +89,18 @@ export default function AdminSubmissionsListPage() {
                       </TableCell>
                       <TableCell className="font-medium text-slate-900">{submission.title}</TableCell>
                       <TableCell className="text-slate-600">{submission.researcherFullName}</TableCell>
+                      <TableCell>
+                        {submission.assignedReviewerFullName ? (
+                          <div className="flex items-center gap-1.5">
+                            <span className="inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
+                            <span className="text-sm font-medium text-slate-800">
+                              {submission.assignedReviewerFullName}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-slate-400 font-normal">لم يُعيَّن بعد</span>
+                        )}
+                      </TableCell>
                       <TableCell className="text-slate-500">{submission.scientificField}</TableCell>
                       <TableCell className="text-slate-500">{formatDateAr(submission.submittedAt)}</TableCell>
                       <TableCell>
@@ -129,6 +142,12 @@ export default function AdminSubmissionsListPage() {
                       <span className="text-slate-400">الباحث:</span>
                       <span className="text-slate-700 font-medium">
                         {submission.researcherFullName}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-400">المحكّم المعيّن:</span>
+                      <span className="text-slate-700 font-medium">
+                        {submission.assignedReviewerFullName || "لم يُعيَّن بعد"}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
