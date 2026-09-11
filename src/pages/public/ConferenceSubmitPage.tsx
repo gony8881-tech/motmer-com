@@ -195,6 +195,7 @@ export default function ConferenceSubmitPage() {
         {state.step === 3 && (
           <FileUploadStep
             conferenceId={conference.id}
+            userId={profile?.id}
             fileState={state.file}
             onFileStateChange={updateFile}
             onBack={previousStep}

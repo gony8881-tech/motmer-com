@@ -7,6 +7,7 @@ import type { SelectedFileState } from "@/features/submissions/types";
 
 interface FileUploadStepProps {
   conferenceId: string;
+  userId?: string;
   fileState: SelectedFileState;
   onFileStateChange: (values: Partial<SelectedFileState>) => void;
   onNext: () => void;
@@ -16,6 +17,7 @@ interface FileUploadStepProps {
 
 export function FileUploadStep({
   conferenceId,
+  userId,
   fileState,
   onFileStateChange,
   onNext,
@@ -83,7 +85,7 @@ export function FileUploadStep({
     }
 
     try {
-      const { storagePath } = await uploadPaperFile(conferenceId, file);
+      const { storagePath } = await uploadPaperFile(conferenceId, file, userId);
 
       // اختيار أحدث حدث بعد بدء هذا الرفع (أو تمت مغادرة الخطوة) — هذه النتيجة قديمة، تجاهلها
       // واحذف الملف الذي رُفع للتو حتى لا يبقى يتيمًا في Storage دون أن يُشار إليه من الحالة.

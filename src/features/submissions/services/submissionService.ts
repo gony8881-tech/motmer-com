@@ -25,20 +25,32 @@ function sanitizeFileName(fileName: string): string {
 
 /**
  * يرفع ملف البحث إلى Supabase Storage قبل استدعاء submit_paper.
- * المسار: {conferenceId}/{مُعرّف مؤقت}/v1/{filename} داخل bucket "papers"
- * (أي papers/{conferenceId}/{...}/v1/{filename} إذا اعتُبر اسم الـ bucket جزءًا من المسار).
+ * المسار: {conferenceId}/{userId}/{مُعرّف مؤقت}/v1/{filename} داخل bucket "papers"
  * عند فشل submit_paper لاحقًا، يجب استدعاء deleteUploadedPaperFile بنفس المسار المُعاد هنا (cleanup).
  */
 export async function uploadPaperFile(
   conferenceId: string,
-  file: File
+  file: File,
+  userId?: string
 ): Promise<{ storagePath: string }> {
   const client = requireSupabase();
+
+  let resolvedUserId = userId;
+  if (!resolvedUserId) {
+    const { data } = await client.auth.getUser();
+    resolvedUserId = data.user?.id;
+  }
+
   const tempId =
     typeof crypto !== "undefined" && "randomUUID" in crypto
       ? crypto.randomUUID()
       : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-  const storagePath = `${conferenceId}/${tempId}/v1/${sanitizeFileName(file.name)}`;
+
+  // المسار القياسي المدعوم بسياسات RLS الجديدة:
+  // {conferenceId}/{userId}/{tempId}/v1/{filename}
+  const storagePath = resolvedUserId
+    ? `${conferenceId}/${resolvedUserId}/${tempId}/v1/${sanitizeFileName(file.name)}`
+    : `${conferenceId}/${tempId}/v1/${sanitizeFileName(file.name)}`;
 
   const { error } = await client.storage.from(PAPERS_BUCKET).upload(storagePath, file, {
     contentType: file.type || undefined,
@@ -46,7 +58,13 @@ export async function uploadPaperFile(
   });
 
   if (error) {
-    throw new Error("تعذّر رفع ملف البحث. يرجى المحاولة مرة أخرى.");
+    console.error("Supabase Storage upload error:", {
+      message: error.message,
+      name: error.name,
+      storagePath,
+      error,
+    });
+    throw new Error(error.message || "تعذّر رفع ملف البحث. يرجى المحاولة مرة أخرى.");
   }
 
   return { storagePath };
@@ -138,6 +156,7 @@ export async function getSubmissionsForConference(
 ): Promise<SubmissionListItem[]> {
   const client = requireSupabase();
   // استعلام مع join لجلب الباحث والمحكّم المعيّن إن وُجد
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await (client.from("papers") as any)
     .select("id,paper_number,title,scientific_field,submitted_at,status,assigned_reviewer_id,researchers(full_name),reviewers(full_name)")
     .eq("conference_id", conferenceId)
@@ -190,6 +209,7 @@ export async function getSubmissionById(paperId: string): Promise<SubmissionDeta
     reviewers: ReviewerRow | ReviewerRow[] | null;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await (client.from("papers") as any)
     .select("*,researchers(*),paper_versions(*),reviewers(*)")
     .eq("id", paperId)
