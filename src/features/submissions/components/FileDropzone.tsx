@@ -1,6 +1,6 @@
 import { useRef, useState, type DragEvent } from "react";
 import { Alert } from "@/components/ui";
-import { ALLOWED_FILE_EXTENSIONS } from "@/features/submissions/types";
+import { ALLOWED_FILE_EXTENSIONS, FILE_INPUT_ACCEPT } from "@/features/submissions/types";
 import type { SelectedFileState } from "@/features/submissions/types";
 import { cn } from "@/lib/cn";
 
@@ -47,48 +47,46 @@ export function FileDropzone({ fileState, onFileSelected, errorMessage }: FileDr
         }}
         onDrop={handleDrop}
         className={cn(
-          "flex flex-col items-center gap-3 rounded-md2 border-2 border-dashed px-6 py-10 text-center transition-colors",
-          dragActive ? "border-primary-500 bg-primary-50" : "border-primary-200 bg-white",
+          "relative flex flex-col items-center justify-center gap-3 rounded-md2 border-2 border-dashed px-6 py-10 text-center transition-colors overflow-hidden",
+          dragActive ? "border-primary-500 bg-primary-50" : "border-primary-200 bg-white hover:border-primary-300",
           isUploading && "pointer-events-none opacity-60"
         )}
       >
-        <p className="text-sm text-primary-600">
-          اسحب ملف البحث وأفلته هنا، أو
-        </p>
-        <label
-          htmlFor="submission-file-input"
-          role="button"
-          tabIndex={isUploading ? -1 : 0}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              inputRef.current?.click();
-            }
-          }}
-          className={cn(
-            "inline-flex items-center justify-center gap-2 rounded-md2 px-4 py-2 text-sm font-medium transition-colors cursor-pointer select-none",
-            "bg-primary-100 text-primary-800 hover:bg-primary-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600",
-            isUploading && "pointer-events-none opacity-50 cursor-not-allowed"
-          )}
-        >
-          اختر ملف البحث
-        </label>
-        <p className="text-xs text-primary-400">
-          الصيغ المدعومة: {ALLOWED_FILE_EXTENSIONS.join("، ")} — الحد الأقصى 10 ميجابايت
-        </p>
         <input
           id="submission-file-input"
           ref={inputRef}
           type="file"
-          accept={ALLOWED_FILE_EXTENSIONS.join(",")}
-          className="sr-only"
+          accept={FILE_INPUT_ACCEPT}
           disabled={isUploading}
+          aria-label="اختر ملف البحث"
+          className={cn(
+            "absolute inset-0 w-full h-full opacity-0 z-10",
+            isUploading ? "cursor-not-allowed pointer-events-none" : "cursor-pointer"
+          )}
           onChange={(e) => {
             const file = e.target.files?.[0];
             if (file) onFileSelected(file);
             e.target.value = "";
           }}
         />
+
+        <div className="pointer-events-none flex flex-col items-center gap-3">
+          <p className="text-sm text-primary-600">
+            اسحب ملف البحث وأفلته هنا، أو
+          </p>
+          <span
+            className={cn(
+              "inline-flex items-center justify-center gap-2 rounded-md2 px-4 py-2 text-sm font-medium transition-colors select-none",
+              "bg-primary-100 text-primary-800",
+              isUploading && "opacity-50"
+            )}
+          >
+            اختر ملف البحث
+          </span>
+          <p className="text-xs text-primary-400">
+            الصيغ المدعومة: {ALLOWED_FILE_EXTENSIONS.join("، ")} — الحد الأقصى 10 ميجابايت
+          </p>
+        </div>
       </div>
 
       {displayError && (

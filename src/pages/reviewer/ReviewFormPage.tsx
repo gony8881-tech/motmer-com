@@ -375,24 +375,26 @@ export default function ReviewFormPage() {
               </div>
             ) : (
               !isAlreadySubmitted && (
-                <div className="border-2 border-dashed border-slate-300 rounded-xl p-5 text-center bg-slate-50/50">
+                <div className="relative border-2 border-dashed border-slate-300 rounded-xl p-5 text-center bg-slate-50/50 hover:bg-slate-100/60 transition-colors">
                   <input
                     type="file"
                     id="review-attachment-file"
-                    accept=".pdf,.doc,.docx"
-                    className="hidden"
+                    accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/octet-stream"
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                    disabled={uploading}
+                    aria-label="اختيار ملف الملاحظات"
                     onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (file) handleFileUpload(file);
+                      e.target.value = "";
                     }}
                   />
-                  <label
-                    htmlFor="review-attachment-file"
-                    className="cursor-pointer text-xs font-bold text-primary-700 hover:text-primary-800"
-                  >
-                    {uploading ? "جاري رفع الملف..." : "📁 اضغط هنا لاختيار ورفع ملف الملاحظات (PDF / Word)"}
-                  </label>
-                  <p className="text-[11px] text-slate-400 mt-1">الحد الأقصى لحجم الملف: 15 ميغابايت</p>
+                  <div className="pointer-events-none flex flex-col items-center">
+                    <span className="text-xs font-bold text-primary-700">
+                      {uploading ? "جاري رفع الملف..." : "📁 اضغط هنا لاختيار ورفع ملف الملاحظات (PDF / Word)"}
+                    </span>
+                    <p className="text-[11px] text-slate-400 mt-1">الحد الأقصى لحجم الملف: 15 ميغابايت</p>
+                  </div>
                 </div>
               )
             )}

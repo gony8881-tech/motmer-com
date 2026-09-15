@@ -60,11 +60,19 @@ export function isPaperFormValid(errors: PaperFormErrors): boolean {
 export function validateSubmissionFile(file: File): string | null {
   const lowerName = file.name.toLowerCase();
   const hasAllowedExtension = ALLOWED_FILE_EXTENSIONS.some((ext) => lowerName.endsWith(ext));
-  const hasAllowedMime =
-    file.type === "" || (ALLOWED_FILE_MIME_TYPES as readonly string[]).includes(file.type);
 
-  if (!hasAllowedExtension || !hasAllowedMime) {
-    return "نوع الملف غير مدعوم. يرجى رفع ملف PDF أو Word.";
+  // على الهواتف الذكية ومتصفحات المحمول، قد يُرسل الملف بدون نوع محدد أو بنوع عام كـ application/octet-stream
+  const hasAllowedMime =
+    file.type === "" ||
+    (ALLOWED_FILE_MIME_TYPES as readonly string[]).includes(file.type) ||
+    file.type === "application/octet-stream";
+
+  if (!hasAllowedExtension) {
+    return "صيغة الملف غير مدعومة. يرجى رفع ملف بصيغة PDF أو Word (.pdf, .doc, .docx).";
+  }
+
+  if (!hasAllowedMime) {
+    return "نوع الملف غير مدعوم. يرجى التأكد من اختيار مستند PDF أو Word صالح.";
   }
 
   if (file.size > MAX_FILE_SIZE_BYTES) {

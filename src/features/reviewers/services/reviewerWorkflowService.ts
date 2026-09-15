@@ -244,9 +244,18 @@ export async function uploadReviewAttachment(
   const safeName = sanitizeFileName(file.name);
   const path = `reviews/${assignmentId}/${Date.now()}-${safeName}`;
 
+  const lowerExt = file.name.toLowerCase();
+  const normalizedContentType = lowerExt.endsWith(".pdf")
+    ? "application/pdf"
+    : lowerExt.endsWith(".docx")
+    ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    : lowerExt.endsWith(".doc")
+    ? "application/msword"
+    : file.type || undefined;
+
   const { error } = await client.storage
     .from("papers")
-    .upload(path, file, { upsert: true });
+    .upload(path, file, { contentType: normalizedContentType, upsert: true });
 
   if (error) {
     throw new Error("تعذّر رفع الملف المرفق. يرجى التأكد من صلاحية الملف والمحاولة مرة أخرى.");

@@ -4,12 +4,26 @@ export const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 /** امتدادات ملف البحث المسموحة */
 export const ALLOWED_FILE_EXTENSIONS = [".pdf", ".doc", ".docx"] as const;
 
-/** أنواع MIME المقابلة المسموحة (تحقق إضافي إلى جانب الامتداد) */
+/** أنواع MIME المقابلة المسموحة (تحقق إضافي إلى جانب الامتداد مع دعم كامل للأجهزة المحمولة) */
 export const ALLOWED_FILE_MIME_TYPES = [
   "application/pdf",
   "application/msword",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-word",
+  "application/x-msword",
+  "application/octet-stream",
+  "application/zip",
+  "application/x-zip-compressed",
 ] as const;
+
+/** سمة accept لعناصر رفع الملفات لضمان التوافق التام مع متصفحات الهواتف المحمولة والكمبيوتر */
+export const FILE_INPUT_ACCEPT = [
+  ...ALLOWED_FILE_EXTENSIONS,
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/octet-stream",
+].join(",");
 
 export type SubmissionStep = 1 | 2 | 3 | 4;
 

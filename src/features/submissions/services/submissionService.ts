@@ -52,8 +52,17 @@ export async function uploadPaperFile(
     ? `${conferenceId}/${resolvedUserId}/${tempId}/v1/${sanitizeFileName(file.name)}`
     : `${conferenceId}/${tempId}/v1/${sanitizeFileName(file.name)}`;
 
+  const lowerExt = file.name.toLowerCase();
+  const normalizedContentType = lowerExt.endsWith(".pdf")
+    ? "application/pdf"
+    : lowerExt.endsWith(".docx")
+    ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    : lowerExt.endsWith(".doc")
+    ? "application/msword"
+    : file.type || undefined;
+
   const { error } = await client.storage.from(PAPERS_BUCKET).upload(storagePath, file, {
-    contentType: file.type || undefined,
+    contentType: normalizedContentType,
     upsert: false,
   });
 
