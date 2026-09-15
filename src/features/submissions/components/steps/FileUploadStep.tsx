@@ -94,15 +94,33 @@ export function FileUploadStep({
         return;
       }
 
-      onFileStateChange({ status: "uploaded", storagePath });
+      onFileStateChange({ file, status: "uploaded", storagePath, errorMessage: null });
     } catch (err) {
       if (token !== selectionTokenRef.current) return;
       onFileStateChange({
+        file,
         status: "error",
         storagePath: null,
         errorMessage: err instanceof Error ? err.message : "تعذّر رفع الملف.",
       });
     }
+  }
+
+  function handleNext() {
+    if (!fileState.file || fileState.status !== "uploaded" || !fileState.storagePath) {
+      if (fileState.status === "uploading") {
+        setValidationError("جارٍ رفع الملف حالياً، يرجى الانتظار حتى اكتمال الرفع.");
+      } else if (!fileState.file) {
+        setValidationError("يرجى اختيار ملف البحث أولاً للمتابعة.");
+      } else if (fileState.status === "error") {
+        setValidationError(fileState.errorMessage || "تعذّر رفع الملف، يرجى إعادة المحاولة.");
+      } else {
+        setValidationError("يرجى اختيار ورفع ملف البحث للمتابعة.");
+      }
+      return;
+    }
+    setValidationError(null);
+    onNext();
   }
 
   return (
@@ -125,7 +143,11 @@ export function FileUploadStep({
         <Button type="button" variant="ghost" onClick={onBack}>
           السابق
         </Button>
-        <Button type="button" disabled={fileState.status !== "uploaded"} onClick={onNext}>
+        <Button
+          type="button"
+          disabled={fileState.status === "uploading"}
+          onClick={handleNext}
+        >
           التالي
         </Button>
       </div>

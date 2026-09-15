@@ -3,7 +3,6 @@ import {
   EMPTY_FILE_STATE,
   EMPTY_PAPER_FORM,
   EMPTY_RESEARCHER_FORM,
-  EMPTY_WIZARD_STATE,
   type PaperFormValues,
   type ResearcherFormValues,
   type SelectedFileState,
@@ -66,15 +65,36 @@ export function useSubmissionWizard(slug?: string) {
     return Boolean(draft && (draft.step > 1 || draft.researcher?.fullName || draft.paper?.title));
   });
 
-  const [state, setState] = useState<SubmissionWizardState>(() => {
-    if (!slug) return EMPTY_WIZARD_STATE;
+  // حالة نموذج التقديم النصية المحفوظة في sessionStorage (بدون الملف)
+  const [draftState, setDraftState] = useState<{
+    step: SubmissionStep;
+    researcher: ResearcherFormValues;
+    paper: PaperFormValues;
+    agreedToAccuracy: boolean;
+  }>(() => {
+    if (!slug) {
+      return {
+        step: 1,
+        researcher: EMPTY_RESEARCHER_FORM,
+        paper: EMPTY_PAPER_FORM,
+        agreedToAccuracy: false,
+      };
+    }
     const draft = loadSubmissionDraft(slug);
-    if (!draft) return EMPTY_WIZARD_STATE;
+    if (!draft) {
+      return {
+        step: 1,
+        researcher: EMPTY_RESEARCHER_FORM,
+        paper: EMPTY_PAPER_FORM,
+        agreedToAccuracy: false,
+      };
+    }
 
     return {
+      // عند استعادة مسودة محفوظة سابقاً، نحدد أقصى خطوة بـ 3 لأن ملف البحث لا يُحفظ في المتصفح
       step:
         typeof draft.step === "number" && draft.step >= 1 && draft.step <= 4
-          ? draft.step
+          ? (Math.min(draft.step, 3) as SubmissionStep)
           : 1,
       researcher: {
         ...EMPTY_RESEARCHER_FORM,
@@ -84,18 +104,20 @@ export function useSubmissionWizard(slug?: string) {
         ...EMPTY_PAPER_FORM,
         ...(draft.paper ?? {}),
       },
-      file: EMPTY_FILE_STATE,
       agreedToAccuracy: Boolean(draft.agreedToAccuracy),
     };
   });
 
-  // إذا تغيّر slug أو تم تمريره بعد أول تصيير، نحاول استعادة المسودة
+  // حالة الملف مفصولة تماماً ومحصورة في الذاكرة (in-memory state) ولا تُقرأ أو تُكتب من/إلى sessionStorage نهائياً
+  const [fileState, setFileState] = useState<SelectedFileState>(EMPTY_FILE_STATE);
+
+  // إذا تغيّر slug أو تم تمريره بعد أول تصيير، نستعيد المسودة للبيانات النصية فقط دون المساس بحالة الملف
   useEffect(() => {
     if (!slug) return;
     const draft = loadSubmissionDraft(slug);
     if (draft && (draft.step > 1 || draft.researcher?.fullName || draft.paper?.title)) {
       setRestoredFromDraft(true);
-      setState((prev) => {
+      setDraftState((prev) => {
         // إذا بدأ المستخدم الإدخال في نموذج غير افتراضي فلا نلغي مدخلاته
         if (prev.step !== 1 || prev.researcher.fullName || prev.paper.title) {
           return prev;
@@ -103,7 +125,7 @@ export function useSubmissionWizard(slug?: string) {
         return {
           step:
             typeof draft.step === "number" && draft.step >= 1 && draft.step <= 4
-              ? draft.step
+              ? (Math.min(draft.step, 3) as SubmissionStep)
               : 1,
           researcher: {
             ...EMPTY_RESEARCHER_FORM,
@@ -113,50 +135,49 @@ export function useSubmissionWizard(slug?: string) {
             ...EMPTY_PAPER_FORM,
             ...(draft.paper ?? {}),
           },
-          file: EMPTY_FILE_STATE,
           agreedToAccuracy: Boolean(draft.agreedToAccuracy),
         };
       });
     }
   }, [slug]);
 
-  // حفظ تلقائي في sessionStorage عند أي تغيير في بيانات النموذج أو الخطوة
+  // حفظ تلقائي في sessionStorage للبيانات النصية فقط (الملف لا يُخزن في المتصفح)
   useEffect(() => {
     if (!slug) return;
     saveSubmissionDraft(slug, {
-      step: state.step,
-      researcher: state.researcher,
-      paper: state.paper,
-      agreedToAccuracy: state.agreedToAccuracy,
+      step: draftState.step,
+      researcher: draftState.researcher,
+      paper: draftState.paper,
+      agreedToAccuracy: draftState.agreedToAccuracy,
     });
-  }, [slug, state.step, state.researcher, state.paper, state.agreedToAccuracy]);
+  }, [slug, draftState.step, draftState.researcher, draftState.paper, draftState.agreedToAccuracy]);
 
   const goToStep = useCallback((step: SubmissionStep) => {
-    setState((prev) => ({ ...prev, step }));
+    setDraftState((prev) => ({ ...prev, step }));
   }, []);
 
   const nextStep = useCallback(() => {
-    setState((prev) => ({ ...prev, step: Math.min(4, prev.step + 1) as SubmissionStep }));
+    setDraftState((prev) => ({ ...prev, step: Math.min(4, prev.step + 1) as SubmissionStep }));
   }, []);
 
   const previousStep = useCallback(() => {
-    setState((prev) => ({ ...prev, step: Math.max(1, prev.step - 1) as SubmissionStep }));
+    setDraftState((prev) => ({ ...prev, step: Math.max(1, prev.step - 1) as SubmissionStep }));
   }, []);
 
   const updateResearcher = useCallback((values: Partial<ResearcherFormValues>) => {
-    setState((prev) => ({ ...prev, researcher: { ...prev.researcher, ...values } }));
+    setDraftState((prev) => ({ ...prev, researcher: { ...prev.researcher, ...values } }));
   }, []);
 
   const updatePaper = useCallback((values: Partial<PaperFormValues>) => {
-    setState((prev) => ({ ...prev, paper: { ...prev.paper, ...values } }));
+    setDraftState((prev) => ({ ...prev, paper: { ...prev.paper, ...values } }));
   }, []);
 
   const updateFile = useCallback((values: Partial<SelectedFileState>) => {
-    setState((prev) => ({ ...prev, file: { ...prev.file, ...values } }));
+    setFileState((prev) => ({ ...prev, ...values }));
   }, []);
 
   const setAgreedToAccuracy = useCallback((agreed: boolean) => {
-    setState((prev) => ({ ...prev, agreedToAccuracy: agreed }));
+    setDraftState((prev) => ({ ...prev, agreedToAccuracy: agreed }));
   }, []);
 
   const clearDraft = useCallback(() => {
@@ -164,7 +185,13 @@ export function useSubmissionWizard(slug?: string) {
       clearSubmissionDraft(slug);
     }
     setRestoredFromDraft(false);
+    setFileState(EMPTY_FILE_STATE);
   }, [slug]);
+
+  const state: SubmissionWizardState = {
+    ...draftState,
+    file: fileState,
+  };
 
   return {
     state,

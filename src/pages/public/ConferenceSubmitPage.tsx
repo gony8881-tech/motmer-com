@@ -213,8 +213,8 @@ export default function ConferenceSubmitPage() {
             submitting={submitting}
             submitError={
               submitError ||
-              (restoredFromDraft && !state.file.file
-                ? "تمت استعادة بيانات التقديم، لكن يرجى العودة للخطوة السابقة وإعادة اختيار ملف البحث قبل الإرسال."
+              (!state.file.file || !state.file.storagePath
+                ? "لم يتم العثور على ملف البحث المرفوع، يرجى العودة للخطوة السابقة وإعادة اختيار الملف."
                 : null)
             }
             onAgreedChange={setAgreedToAccuracy}
