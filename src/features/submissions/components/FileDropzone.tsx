@@ -65,8 +65,12 @@ export function FileDropzone({ fileState, onFileSelected, errorMessage }: FileDr
           )}
           onChange={(e) => {
             const file = e.target.files?.[0];
-            if (file) onFileSelected(file);
-            e.target.value = "";
+            if (file) {
+              onFileSelected(file);
+            }
+            setTimeout(() => {
+              if (e.target) e.target.value = "";
+            }, 50);
           }}
         />
 

@@ -10,9 +10,14 @@ function sanitizeFileName(fileName: string): string {
   const trimmed = fileName.trim();
   const lastDot = trimmed.lastIndexOf(".");
   const base = lastDot > 0 ? trimmed.slice(0, lastDot) : trimmed;
-  const ext = lastDot > 0 ? trimmed.slice(lastDot) : "";
-  const safeBase = base.replace(/[^a-zA-Z0-9-_]+/g, "-").replace(/-+/g, "-") || "attachment";
-  return `${safeBase}${ext.toLowerCase()}`;
+  const rawExt = lastDot > 0 ? trimmed.slice(lastDot).toLowerCase() : "";
+  const ext = rawExt || ".pdf";
+  const cleaned = base
+    .replace(/[^a-zA-Z0-9_-]+/g, "-")
+    .replace(/^[-_]+|[-_]+$/g, "")
+    .replace(/-+/g, "-");
+  const safeBase = cleaned || `attachment-${Date.now()}`;
+  return `${safeBase}${ext}`;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -12,6 +12,9 @@ import {
 import { getReviewers } from "@/features/reviewers";
 import type { Reviewer } from "@/types";
 import { PAPER_STATUS, PAPER_STATUS_LABELS_AR, type PaperStatus } from "@/features/workflow";
+import {
+  REVIEW_RECOMMENDATION_LABELS_AR,
+} from "@/types/reviewerWorkflow";
 import { formatDateAr } from "@/utils/date";
 import { ROUTES } from "@/constants/routes";
 
@@ -20,6 +23,23 @@ function formatFileSize(bytes: number): string {
   const kb = bytes / 1024;
   if (kb < 1024) return `${kb.toFixed(0)} كيلوبايت`;
   return `${(kb / 1024).toFixed(1)} ميجابايت`;
+}
+
+function getRecommendationBadgeTone(
+  rec?: string | null
+): "primary" | "success" | "danger" | "warning" | "neutral" {
+  switch (rec) {
+    case "ACCEPT":
+      return "success";
+    case "MINOR_REVISION":
+      return "primary";
+    case "MAJOR_REVISION":
+      return "warning";
+    case "REJECT":
+      return "danger";
+    default:
+      return "neutral";
+  }
 }
 
 function getStatusBadgeTone(status: PaperStatus): "primary" | "success" | "danger" | "warning" | "neutral" {
@@ -128,6 +148,7 @@ export default function AdminSubmissionDetailPage() {
       ACCEPTED: "قبول هذا البحث نهائياً",
       REJECTED: "رفض هذا البحث",
       READY_FOR_REVIEW: "اعتماد البحث وجعله جاهزاً للتحكيم",
+      REVISION_REQUESTED: "طلب إجراء تعديلات على البحث من الباحث",
     };
 
     const confirmMsg = `هل أنت متأكد من رغبتك في ${statusLabels[newStatus] || "تحديث حالة البحث"}؟`;
@@ -319,6 +340,24 @@ export default function AdminSubmissionDetailPage() {
                           ))}
                         </div>
                       )}
+                      {detail.reviewReport && (
+                        <div className="mt-2.5 pt-2 border-t border-slate-200 flex flex-wrap items-center gap-2">
+                          <span className="text-xs font-semibold text-slate-700">قرار المحكّم:</span>
+                          <Badge
+                            tone={getRecommendationBadgeTone(detail.reviewReport.recommendation)}
+                            className="text-xs font-bold"
+                          >
+                            {detail.reviewReport.recommendation
+                              ? REVIEW_RECOMMENDATION_LABELS_AR[detail.reviewReport.recommendation as keyof typeof REVIEW_RECOMMENDATION_LABELS_AR]
+                              : "تم إرسال التقرير"}
+                          </Badge>
+                          {detail.reviewReport.overallScore && (
+                            <span className="text-xs text-slate-500 font-medium">
+                              (التقييم الإجمالي: {detail.reviewReport.overallScore} من 5)
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
                     {!isRejected && (
                       <Button
@@ -419,6 +458,197 @@ export default function AdminSubmissionDetailPage() {
                 </div>
               </div>
             </Card>
+
+            {/* تقرير وقرار المحكّم العلمي */}
+            {detail.reviewReport ? (
+              <Card className="p-5 sm:p-6 space-y-6 border-slate-200 shadow-sm bg-gradient-to-b from-white to-slate-50/40">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4 border-b border-slate-200">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-base font-bold text-slate-900">
+                        تقرير وتقييم المحكّم العلمي
+                      </h3>
+                      <Badge
+                        tone={detail.reviewReport.status === "SUBMITTED" ? "success" : "neutral"}
+                        dot
+                      >
+                        {detail.reviewReport.status === "SUBMITTED" ? "تم تسليم التقرير النهائي" : "مسودة تقرير"}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-1">
+                      المحكّم: د. {detail.assignedReviewer?.fullName || "المحكّم"} — تاريخ التسليم: {detail.reviewReport.submittedAt ? formatDateAr(detail.reviewReport.submittedAt) : "—"}
+                    </p>
+                  </div>
+
+                  {/* توصية المحكّم البارزة */}
+                  {detail.reviewReport.recommendation && (
+                    <div className="flex items-center gap-2 self-start sm:self-auto">
+                      <span className="text-xs text-slate-500 font-medium">توصية المحكّم:</span>
+                      <Badge
+                        tone={getRecommendationBadgeTone(detail.reviewReport.recommendation)}
+                        className="text-xs font-bold px-3 py-1"
+                      >
+                        {REVIEW_RECOMMENDATION_LABELS_AR[detail.reviewReport.recommendation as keyof typeof REVIEW_RECOMMENDATION_LABELS_AR] || detail.reviewReport.recommendation}
+                      </Badge>
+                    </div>
+                  )}
+                </div>
+
+                {/* شبكة معايير التقييم والدرجات */}
+                <div className="space-y-2">
+                  <h4 className="text-xs font-bold text-slate-700">تقييم المعايير العلمية (من 5 درجات):</h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                    <div className="flex flex-col gap-1 p-3 bg-white rounded-xl border border-slate-200">
+                      <span className="text-[11px] font-medium text-slate-500">الأصالة والابتكار</span>
+                      <div className="flex items-center justify-between">
+                        <span className="text-lg font-bold text-slate-900">{detail.reviewReport.originalityScore ?? "—"}</span>
+                        <span className="text-xs text-amber-500">{"★".repeat(detail.reviewReport.originalityScore ?? 0)}</span>
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-1 p-3 bg-white rounded-xl border border-slate-200">
+                      <span className="text-[11px] font-medium text-slate-500">المنهجية العلمية</span>
+                      <div className="flex items-center justify-between">
+                        <span className="text-lg font-bold text-slate-900">{detail.reviewReport.methodologyScore ?? "—"}</span>
+                        <span className="text-xs text-amber-500">{"★".repeat(detail.reviewReport.methodologyScore ?? 0)}</span>
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-1 p-3 bg-white rounded-xl border border-slate-200">
+                      <span className="text-[11px] font-medium text-slate-500">الوضوح والتنظيم</span>
+                      <div className="flex items-center justify-between">
+                        <span className="text-lg font-bold text-slate-900">{detail.reviewReport.clarityScore ?? "—"}</span>
+                        <span className="text-xs text-amber-500">{"★".repeat(detail.reviewReport.clarityScore ?? 0)}</span>
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-1 p-3 bg-white rounded-xl border border-slate-200">
+                      <span className="text-[11px] font-medium text-slate-500">الأهمية والمساهمة</span>
+                      <div className="flex items-center justify-between">
+                        <span className="text-lg font-bold text-slate-900">{detail.reviewReport.significanceScore ?? "—"}</span>
+                        <span className="text-xs text-amber-500">{"★".repeat(detail.reviewReport.significanceScore ?? 0)}</span>
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-1 p-3 bg-primary-50/60 rounded-xl border border-primary-200 col-span-2 sm:col-span-1">
+                      <span className="text-[11px] font-bold text-primary-800">التقييم الإجمالي</span>
+                      <div className="flex items-center justify-between">
+                        <span className="text-lg font-bold text-primary-900">{detail.reviewReport.overallScore ?? "—"}</span>
+                        <span className="text-xs text-amber-500">{"★".repeat(detail.reviewReport.overallScore ?? 0)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ملاحظات المحكّم */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* ملاحظات للمؤلف */}
+                  <div className="p-4 bg-white rounded-xl border border-slate-200 space-y-2">
+                    <h4 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                      <span>📝</span> ملاحظات المحكّم للباحث (تظهر للباحث):
+                    </h4>
+                    <p className="whitespace-pre-line text-xs text-slate-700 leading-relaxed min-h-[50px]">
+                      {detail.reviewReport.commentsForAuthor || "لا توجد ملاحظات مدونة للباحث."}
+                    </p>
+                  </div>
+
+                  {/* ملاحظات سرية للمحرر */}
+                  <div className="p-4 bg-amber-50/50 rounded-xl border border-amber-200 space-y-2">
+                    <h4 className="text-xs font-bold text-amber-900 flex items-center gap-1.5">
+                      <span>🔒</span> ملاحظات سرية لهيئة التحرير والإدارة (خاصة بالمؤتمر):
+                    </h4>
+                    <p className="whitespace-pre-line text-xs text-amber-950 leading-relaxed min-h-[50px]">
+                      {detail.reviewReport.confidentialCommentsForEditor || "لا توجد ملاحظات سرية مدونة."}
+                    </p>
+                  </div>
+                </div>
+
+                {/* المرفق من المحكّم */}
+                {detail.reviewReport.attachmentFilePath && (
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3.5 bg-slate-100/80 rounded-xl border border-slate-200">
+                    <div className="flex items-center gap-2">
+                      <span className="text-base">📎</span>
+                      <div>
+                        <p className="text-xs font-bold text-slate-800">
+                          نسخة البحث المعلق عليها من قِبل المحكّم:
+                        </p>
+                        <p className="text-[11px] text-slate-500 font-mono">
+                          {detail.reviewReport.attachmentFileName || "ملف مرفق"}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        disabled={viewingId === "review-attachment" || downloadingId === "review-attachment"}
+                        isLoading={viewingId === "review-attachment"}
+                        onClick={() => handleViewFile(detail.reviewReport!.attachmentFilePath!, "review-attachment")}
+                      >
+                        معاينة المرفق
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={downloadingId === "review-attachment" || viewingId === "review-attachment"}
+                        isLoading={downloadingId === "review-attachment"}
+                        onClick={() => handleDownloadFile(detail.reviewReport!.attachmentFilePath!, "review-attachment", detail.reviewReport!.attachmentFileName || "review-attachment.pdf")}
+                      >
+                        تنزيل
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* اعتماد توصية المحكّم بضغطة زر */}
+                <div className="pt-3 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3">
+                  <span className="text-xs text-slate-500 font-medium">
+                    إجراءات سريعة لاعتماد توصية المحكّم في حالة البحث:
+                  </span>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {detail.reviewReport.recommendation === "ACCEPT" && !isAccepted && (
+                      <Button
+                        size="sm"
+                        variant="primary"
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                        isLoading={statusUpdating === PAPER_STATUS.ACCEPTED}
+                        onClick={() => handleUpdateStatus(PAPER_STATUS.ACCEPTED)}
+                      >
+                        قبول البحث (وفق توصية المحكّم)
+                      </Button>
+                    )}
+                    {(detail.reviewReport.recommendation === "MINOR_REVISION" || detail.reviewReport.recommendation === "MAJOR_REVISION") && currentStatus !== PAPER_STATUS.REVISION_REQUESTED && (
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        className="border-amber-400 bg-amber-50 text-amber-900 hover:bg-amber-100"
+                        isLoading={statusUpdating === PAPER_STATUS.REVISION_REQUESTED}
+                        onClick={() => handleUpdateStatus(PAPER_STATUS.REVISION_REQUESTED)}
+                      >
+                        طلب تعديلات من الباحث (وفق توصية المحكّم)
+                      </Button>
+                    )}
+                    {detail.reviewReport.recommendation === "REJECT" && !isRejected && (
+                      <Button
+                        size="sm"
+                        variant="danger"
+                        isLoading={statusUpdating === PAPER_STATUS.REJECTED}
+                        onClick={() => handleUpdateStatus(PAPER_STATUS.REJECTED)}
+                      >
+                        رفض البحث (وفق توصية المحكّم)
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </Card>
+            ) : detail.assignedReviewer ? (
+              <Card className="p-4 bg-slate-50 border-slate-200">
+                <div className="flex items-center gap-2 text-slate-600 text-xs">
+                  <span className="inline-block h-2 w-2 rounded-full bg-amber-500 animate-pulse"></span>
+                  <span>
+                    البحث قيد التحكيم حالياً من قِبل د. {detail.assignedReviewer.fullName} — بانتظار تسليم تقرير التحكيم.
+                  </span>
+                </div>
+              </Card>
+            ) : null}
 
             {/* Paper Details Card */}
             <Card className="flex flex-col gap-3">

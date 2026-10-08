@@ -22,7 +22,6 @@ export const FILE_INPUT_ACCEPT = [
   "application/pdf",
   "application/msword",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  "application/octet-stream",
 ].join(",");
 
 export type SubmissionStep = 1 | 2 | 3 | 4;
@@ -125,4 +124,6 @@ export interface SubmissionListItem {
   scientificField: string;
   submittedAt: string;
   status: string;
+  reviewRecommendation?: string | null;
+  reviewReportStatus?: string | null;
 }

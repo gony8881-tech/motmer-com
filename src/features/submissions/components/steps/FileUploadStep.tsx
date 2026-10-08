@@ -29,9 +29,11 @@ export function FileUploadStep({
   const selectionTokenRef = useRef(0);
   const [validationError, setValidationError] = useState<string | null>(null);
 
-  // عند تفكيك المكوّن (مغادرة الخطوة)، أي نتيجة رفع متأخرة تصل لاحقًا تُتجاهل أيضًا.
-  // منع السلوك الافتراضي للمتصفح (فتح الملف أو إعادة تحميل الصفحة) عند إفلات ملف في النافذة.
+  const isMountedRef = useRef(true);
+
+  // عند تفكيك المكوّن (مغادرة الخطوة)، تتبع حالة التثبيت لمنع تحديث الحالة بعد التفكيك
   useEffect(() => {
+    isMountedRef.current = true;
     function preventDefaults(e: DragEvent) {
       // نتحقق من أن الحدث يخص سحب ملفات فعلية لتفادي أي تداخل مع إيماءات اللمس في المتصفحات
       const isFileDrag = e.dataTransfer?.types
@@ -46,7 +48,7 @@ export function FileUploadStep({
     window.addEventListener("drop", preventDefaults);
 
     return () => {
-      selectionTokenRef.current += 1;
+      isMountedRef.current = false;
       window.removeEventListener("dragover", preventDefaults);
       window.removeEventListener("drop", preventDefaults);
     };
@@ -89,14 +91,14 @@ export function FileUploadStep({
 
       // اختيار أحدث حدث بعد بدء هذا الرفع (أو تمت مغادرة الخطوة) — هذه النتيجة قديمة، تجاهلها
       // واحذف الملف الذي رُفع للتو حتى لا يبقى يتيمًا في Storage دون أن يُشار إليه من الحالة.
-      if (token !== selectionTokenRef.current) {
+      if (!isMountedRef.current || token !== selectionTokenRef.current) {
         await deleteUploadedPaperFile(storagePath);
         return;
       }
 
       onFileStateChange({ file, status: "uploaded", storagePath, errorMessage: null });
     } catch (err) {
-      if (token !== selectionTokenRef.current) return;
+      if (!isMountedRef.current || token !== selectionTokenRef.current) return;
       onFileStateChange({
         file,
         status: "error",

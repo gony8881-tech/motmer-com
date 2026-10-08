@@ -17,8 +17,28 @@ import {
 import { useConference } from "@/features/conferences";
 import { useConferenceSubmissions } from "@/features/submissions";
 import { PAPER_STATUS_LABELS_AR, type PaperStatus } from "@/features/workflow";
+import {
+  REVIEW_RECOMMENDATION_LABELS_AR,
+} from "@/types/reviewerWorkflow";
 import { formatDateAr } from "@/utils/date";
 import { ROUTES } from "@/constants/routes";
+
+function getRecommendationBadgeTone(
+  rec?: string | null
+): "primary" | "success" | "danger" | "warning" | "neutral" {
+  switch (rec) {
+    case "ACCEPT":
+      return "success";
+    case "MINOR_REVISION":
+      return "primary";
+    case "MAJOR_REVISION":
+      return "warning";
+    case "REJECT":
+      return "danger";
+    default:
+      return "neutral";
+  }
+}
 
 export default function AdminSubmissionsListPage() {
   const { id } = useParams<{ id: string }>();
@@ -91,11 +111,21 @@ export default function AdminSubmissionsListPage() {
                       <TableCell className="text-slate-600">{submission.researcherFullName}</TableCell>
                       <TableCell>
                         {submission.assignedReviewerFullName ? (
-                          <div className="flex items-center gap-1.5">
-                            <span className="inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
-                            <span className="text-sm font-medium text-slate-800">
-                              {submission.assignedReviewerFullName}
-                            </span>
+                          <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-1.5">
+                              <span className="inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
+                              <span className="text-sm font-medium text-slate-800">
+                                {submission.assignedReviewerFullName}
+                              </span>
+                            </div>
+                            {submission.reviewRecommendation && (
+                              <Badge
+                                tone={getRecommendationBadgeTone(submission.reviewRecommendation)}
+                                className="text-[10px] w-fit"
+                              >
+                                {REVIEW_RECOMMENDATION_LABELS_AR[submission.reviewRecommendation as keyof typeof REVIEW_RECOMMENDATION_LABELS_AR] || submission.reviewRecommendation}
+                              </Badge>
+                            )}
                           </div>
                         ) : (
                           <span className="text-xs text-slate-400 font-normal">لم يُعيَّن بعد</span>
@@ -146,9 +176,19 @@ export default function AdminSubmissionsListPage() {
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-slate-400">المحكّم المعيّن:</span>
-                      <span className="text-slate-700 font-medium">
-                        {submission.assignedReviewerFullName || "لم يُعيَّن بعد"}
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-slate-700 font-medium">
+                          {submission.assignedReviewerFullName || "لم يُعيَّن بعد"}
+                        </span>
+                        {submission.reviewRecommendation && (
+                          <Badge
+                            tone={getRecommendationBadgeTone(submission.reviewRecommendation)}
+                            className="text-[10px]"
+                          >
+                            {REVIEW_RECOMMENDATION_LABELS_AR[submission.reviewRecommendation as keyof typeof REVIEW_RECOMMENDATION_LABELS_AR] || submission.reviewRecommendation}
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-slate-400">المجال العلمي:</span>
